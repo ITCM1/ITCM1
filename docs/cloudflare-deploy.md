@@ -12,9 +12,9 @@ The repository is configured for the OpenNext Cloudflare adapter. The app is not
 
 ## Build configuration
 
-- Worker name: `itcm-global-ai`
-- Build command: `npx @opennextjs/cloudflare build`
-- Deploy command: `npx @opennextjs/cloudflare deploy`
+- Worker name: `itcm1`
+- Build command: `npm run build:cloudflare`
+- Deploy command: `npx wrangler deploy`
 - Root directory: `/` (repository root)
 - Do not select a static Pages preset; this is a full-stack Next.js Worker.
 
