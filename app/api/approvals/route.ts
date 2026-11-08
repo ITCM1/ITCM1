@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getDatabase } from "@/lib/cloudflare";
+import { writeAuditEvent } from "@/lib/audit";
 import { isOwnerAuthenticated } from "@/lib/owner-session";
 
 const decisionInput = z.object({
@@ -37,6 +38,15 @@ export async function PATCH(request: NextRequest) {
     if (!result.meta || Number(result.meta.changes ?? 0) === 0) {
       return NextResponse.json({ error: "Approval not found, already decided, or expired." }, { status: 409 });
     }
+    await writeAuditEvent(db, {
+      actorType: "owner",
+      actorId: "owner",
+      action: "approval.decided",
+      resourceType: "approval",
+      resourceId: id,
+      outcome: "success",
+      details: { decision, note }
+    });
     return NextResponse.json({ decided: true, id, decision, decidedAt: now });
   } catch {
     return NextResponse.json({ error: "Approval decision could not be saved." }, { status: 503 });
