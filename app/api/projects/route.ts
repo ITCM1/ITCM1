@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getDatabase } from "@/lib/cloudflare";
+import { writeAuditEvent } from "@/lib/audit";
 import { isOwnerAuthenticated } from "@/lib/owner-session";
 
 const projectInput = z.object({
@@ -36,6 +37,15 @@ export async function POST(request: NextRequest) {
     await db.prepare(
       "INSERT INTO projects (id, name, description, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)"
     ).bind(id, project.name, project.description, project.status, now, now).run();
+    await writeAuditEvent(db, {
+      actorType: "owner",
+      actorId: "owner",
+      action: "project.created",
+      resourceType: "project",
+      resourceId: id,
+      outcome: "success",
+      details: { name: project.name, status: project.status }
+    });
     return NextResponse.json({ project: { ...project, id, createdAt: now, updatedAt: now } }, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Project could not be saved." }, { status: 503 });
