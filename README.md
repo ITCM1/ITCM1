@@ -1,31 +1,43 @@
 # ITCM GLOBAL AI
 
 **Owner:** Taghi Benchraka  
-**Product:** Autonomous business command center  
+**Product:** Secure business operations command center  
 **Repository:** ITCM1/ITCM1
 
-ITCM GLOBAL AI is being built as a secure, multilingual business operations platform. Telegram is the intended owner command channel; a web dashboard provides configuration, visibility, audit history, and approvals.
+ITCM GLOBAL AI is being developed as a secure, multilingual business operations platform. The web dashboard is the owner workspace; Telegram is planned as an additional command channel.
 
-## Product principles
+## Implemented in the repository
 
-- Real integrations and persisted records; no fake dashboard metrics or demo-success claims.
-- Owner-only access for executive commands.
-- Human approval required for contracts, signatures, transfers, refunds, advertising spend, bank changes, and other legally or financially binding actions.
-- Agents operate only through documented permissions, approved APIs, and auditable workflows.
-- Emergency stop and durable audit logs are mandatory.
+- Next.js + TypeScript dashboard.
+- Owner password login endpoint with a signed, HttpOnly session cookie.
+- Owner-authenticated task API: create, list, update status/details, and delete.
+- Cloudflare D1 schema migration for durable task records.
+- Health endpoint reports whether expected integration variables and the D1 binding are present.
+- GitHub Actions CI runs dependency installation, lint, TypeScript checks, and Next.js production build.
 
-## Planned architecture
+## Required setup before task management is operational
 
-- Web application: Next.js + TypeScript.
-- API and orchestration: server-side application services.
-- Data: PostgreSQL + Prisma.
-- Background execution: durable job queue and worker.
-- Messaging: official Telegram Bot API (webhook).
-- AI: provider abstraction; API credentials configured server-side.
-- Deployment: production hosting selected after environment inspection.
+The task API requires a Cloudflare D1 database bound to the Worker as `DB`, with `migrations/0001_tasks.sql` applied. Owner login requires the encrypted Worker secrets `OWNER_LOGIN_PASSWORD` and `SESSION_SECRET`. See [Cloudflare deployment and setup](docs/cloudflare-deploy.md).
 
-## Current status
+Without those external settings, the API returns explicit configuration errors; it does not claim that records have been saved.
 
-This repository contains the initial project specification and implementation plan. Telegram is **not connected**, no bot token is configured, and no production deployment has been performed yet.
+## Not yet implemented or connected
 
-See [docs/architecture.md](docs/architecture.md) and [docs/roadmap.md](docs/roadmap.md).
+- AI provider integration and autonomous agent execution.
+- Durable background job queue and master orchestrator.
+- Telegram task execution (current webhook supports only `/start` and `/status`).
+- Email and WhatsApp delivery.
+- Payment provider integrations and financial operations.
+- Production Cloudflare deployment verification.
+
+## Security principles
+
+- Owner-only task operations.
+- Secrets remain in environment variables / encrypted Worker secrets, never in source control.
+- Contracts, signatures, transfers, refunds, advertising spend, bank changes, and other legally or financially binding actions must require explicit owner approval.
+- Agent actions must be permission-scoped and auditable.
+- Never report a payment, sale, deployment, or external action as successful without confirmation from the relevant service.
+
+## Validation
+
+The GitHub Actions workflow verifies lint, TypeScript, and the Next.js production build. It does not by itself verify Cloudflare D1 provisioning, OpenNext Worker deployment, Telegram webhook configuration, or live integrations.
