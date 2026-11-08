@@ -5,6 +5,10 @@
   "compatibility_date": "2026-11-06",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  // After creating the D1 database, add its real database_id here:
+  // "d1_databases": [
+  //   { "binding": "DB", "database_name": "itcm-global-ai", "database_id": "YOUR_D1_DATABASE_ID" }
+  // ],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
