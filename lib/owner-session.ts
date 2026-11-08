@@ -43,9 +43,11 @@ export async function isOwnerAuthenticated(): Promise<boolean> {
     const expected = await signature(secret);
     const actual = fromBase64Url(token);
     if (actual.length !== expected.length) return false;
-    return crypto.subtle.timingSafeEqual
-      ? crypto.subtle.timingSafeEqual(actual, expected)
-      : actual.every((value, index) => value === expected[index]);
+    let difference = 0;
+    for (let index = 0; index < expected.length; index += 1) {
+      difference |= actual[index] ^ expected[index];
+    }
+    return difference === 0;
   } catch {
     return false;
   }
