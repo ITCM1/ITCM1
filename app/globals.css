@@ -75,3 +75,19 @@ footer{margin-top:35px;color:#68717d;font-size:10px;letter-spacing:1px}footer sp
 .empty-state{padding:26px;text-align:center;color:var(--muted);font-size:12px;background:var(--panel);border:1px dashed var(--line);border-radius:10px}
 @media(max-width:900px){.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.task-form{grid-template-columns:1fr}.field-wide,.form-actions{grid-column:auto}.task-toolbar,.task-row{align-items:stretch;flex-direction:column}.search-input{max-width:none}.task-controls{justify-content:space-between}.task-controls select{flex:1;max-width:none}.filter-group{justify-content:flex-start}}
+
+
+/* Secure owner access and backend service feedback */
+.auth-screen{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 50% 15%,#202a37 0,#0b1017 52%)}
+.auth-card{width:min(100%,420px);display:grid;gap:15px;padding:34px;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 80px #0008}
+.auth-card .brand-mark{font-size:32px;letter-spacing:2px}
+.auth-card .brand-subtitle{margin: -12px 0 10px 2px}
+.auth-card h1{font-size:25px;margin:0}
+.auth-card p{color:var(--muted);font-size:12px;line-height:1.6;margin:0}
+.auth-card .primary-button{width:100%;padding:13px}
+.auth-card>small{color:var(--muted);font-size:10px;text-align:center}
+.error-message{color:#ffb2a9!important;background:#3b211f;border:1px solid #75413b;border-radius:7px;padding:10px}
+.error-banner{margin:18px 0;padding:13px 15px;border:1px solid #75413b;border-radius:9px;background:#291b1b;color:#ffc1b8;font-size:12px;line-height:1.6}
+.topbar-actions{display:flex;align-items:center;gap:10px}
+.primary-button:disabled{opacity:.55;cursor:not-allowed}
+@media(max-width:600px){.topbar-actions{width:100%;justify-content:space-between}.auth-card{padding:26px}}
