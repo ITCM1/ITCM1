@@ -23,6 +23,7 @@ The repository uses the OpenNext Cloudflare adapter. A successful GitHub build d
 4. Apply the schema to the remote database:
    ```bash
    npx wrangler d1 execute itcm-global-ai --remote --file=migrations/0001_tasks.sql
+   npx wrangler d1 execute itcm-global-ai --remote --file=migrations/0002_orchestration.sql
    ```
 5. Confirm the binding is present on the deployed Worker. Until this is done, task API operations return an explicit 503 configuration error.
 
@@ -72,7 +73,8 @@ These Telegram task commands are real D1-backed operations when the database bin
 
 ## Current implementation limits
 
-- AI provider orchestration and background agent execution are not implemented yet.
+- The D1 schema now includes projects, agent runs, approvals, and audit events (migration `0002_orchestration.sql`), but APIs, audit-writing services, approval workflows, and background execution are not implemented yet.
+- No AI model is connected until `AI_PROVIDER`, `AI_API_KEY`, and a supported provider adapter are configured and tested.
 - Email, WhatsApp, payment providers, marketplace integrations, and financial workflows are not connected.
 - The GitHub CI workflow validates lint, TypeScript, and the Next.js production build. It does not validate Cloudflare credentials, D1 provisioning, Telegram webhook registration, or live production deployment.
 - Do not treat a successful GitHub commit or CI run as proof of a Cloudflare deployment. Confirm the Workers deployment in Cloudflare and test the live URL.
