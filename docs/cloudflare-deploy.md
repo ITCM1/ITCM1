@@ -1,61 +1,71 @@
-# Deploy ITCM GLOBAL AI on Cloudflare Workers (free plan)
+# Deploy ITCM GLOBAL AI on Cloudflare Workers
 
-The repository is configured for the OpenNext Cloudflare adapter. The app is not deployed until a successful Workers Build appears in Cloudflare.
+The repository uses the OpenNext Cloudflare adapter. A successful GitHub build does not prove that the Worker is deployed or that external bindings are configured.
 
-## Connect the GitHub repository
+## Connect GitHub to Cloudflare
 
 1. Sign in at https://dash.cloudflare.com/.
-2. Open **Workers & Pages**.
-3. Choose **Create application** and then **Import a repository** (dashboard wording may vary).
-4. Connect GitHub and grant Cloudflare access to **ITCM1/ITCM1**.
-5. Select the `main` branch.
+2. Open **Workers & Pages** and create an application by importing **ITCM1/ITCM1**.
+3. Select the `main` branch and repository root.
+4. Use build command `npm run build` and deploy command `npx wrangler deploy`.
+5. Use Worker name `itcm1`. Do not select a static Pages preset.
 
-## Build configuration
+## Create and connect the D1 database
 
-- Worker name: `itcm1`
-- Build command: `npm run build`
-- Deploy command: `npx wrangler deploy`
-- Root directory: `/` (repository root)
-- Do not select a static Pages preset; this is a full-stack Next.js Worker.
+1. Create a D1 database named `itcm-global-ai` in Cloudflare Dashboard > Storage & databases > D1, or run:
+   ```bash
+   npx wrangler d1 create itcm-global-ai
+   ```
+2. In Workers & Pages > `itcm1` > Settings > Bindings, add a D1 database binding:
+   - Variable name: `DB`
+   - Database: `itcm-global-ai`
+3. Apply the schema to the remote database:
+   ```bash
+   npx wrangler d1 execute itcm-global-ai --remote --file=migrations/0001_tasks.sql
+   ```
+4. Confirm the binding is present on the deployed Worker. Until this is done, task API operations return an explicit 503 configuration error.
 
-## Secrets and variables
+## Configure secrets
 
-After deployment, add these as encrypted secrets / environment variables in Worker settings:
+Add these values under Worker > Settings > Variables and Secrets. Use encrypted secrets for credentials.
 
-- `TELEGRAM_BOT_TOKEN` — token from BotFather (secret; never commit it).
-- `TELEGRAM_WEBHOOK_SECRET` — a new random secret string chosen by the owner.
-- `TELEGRAM_OWNER_USER_IDS` — `787937965`.
+- `OWNER_LOGIN_PASSWORD`: a strong, unique owner password.
+- `SESSION_SECRET`: a random secret with at least 32 bytes of entropy.
+- `TELEGRAM_BOT_TOKEN`: token from Telegram BotFather.
+- `TELEGRAM_WEBHOOK_SECRET`: a new random secret used to verify webhook requests.
+- `TELEGRAM_OWNER_USER_IDS`: owner Telegram numeric ID `787937965`.
+- `AI_PROVIDER` and `AI_API_KEY`: only when an AI provider has been selected and its API key is ready.
 
-Never paste bot tokens into GitHub files, source code, screenshots, or chat.
+Never paste secrets into GitHub files, screenshots, or chat. For local development, use `.env.local` and a local D1 binding.
 
-## Persistent database and owner login
+## Owner login and task management
 
-1. In Cloudflare, create a D1 database named `itcm-global-ai`.
-2. Add a D1 binding named `DB` to Worker `itcm1`, pointing to that database.
-3. Apply the SQL migration in `migrations/0001_tasks.sql` to the database (Cloudflare Dashboard > D1 > Console, or Wrangler migrations).
-4. Add these encrypted Worker secrets:
-   - `OWNER_LOGIN_PASSWORD` — a strong, unique owner password.
-   - `SESSION_SECRET` — a random secret of at least 32 bytes.
-5. For local development, set the same variables in `.env.local` and configure a local D1 binding.
+- Open the deployed Worker URL.
+- Sign in using `OWNER_LOGIN_PASSWORD`.
+- The server issues a 12-hour HttpOnly, SameSite=Strict signed session cookie.
+- Task read, create, update, and delete operations require the owner session and use the D1 `tasks` table.
+- The dashboard displays a configuration error instead of pretending to save when D1 is missing.
 
-The login endpoint is `/api/auth/login`; it issues a 12-hour HttpOnly, SameSite=Strict session cookie. Task read/write/delete endpoints require this owner session. Without the D1 binding and migration, task endpoints return an explicit configuration error; they do not silently claim to save data.
+## Telegram commands
 
-## Telegram webhook
+After deployment, configure the bot webhook to:
+```
+https://<your-worker-host>/api/telegram/webhook
+```
+Set Telegram's webhook secret token to the same value as `TELEGRAM_WEBHOOK_SECRET`. Keep the bot token private.
 
-After deployment, configure Telegram's webhook to `https://itcm1.<your-worker-domain>/api/telegram/webhook` with the same secret token. Keep the bot token and webhook secret private. Test these owner-only commands in the bot:
+Owner-only commands currently implemented:
+- `/start` or `/help`: show help.
+- `/status`: report whether database and AI credentials are detected.
+- `/tasks`: list the latest ten tasks from D1.
+- `/task عنوان المهمة`: create a task in D1.
+- `/done TASK_ID`: mark a task complete.
 
-- `/start` or `/help` — show commands.
-- `/status` — check whether database and AI credentials are detected.
-- `/tasks` — list the latest ten tasks.
-- `/task عنوان المهمة` — create a task in D1.
-- `/done TASK_ID` — mark a task complete.
+These Telegram task commands are real D1-backed operations when the database binding and migration are configured. They do not call an AI model, execute arbitrary commands, send customer messages, spend money, or perform financial transfers.
 
-The webhook still does not call an AI model or execute arbitrary business operations.
+## Current implementation limits
 
-## Current limitations
-
-- Telegram supports owner-only task commands backed by D1, but it is not yet an autonomous AI agent.
-- The task API and owner session endpoints are implemented, but they require the D1 binding, SQL migration, and owner secrets above before use.
-- AI provider orchestration is not configured.
-- A successful commit is not proof of a successful build or deployment. Confirm the Workers Build is green and test the deployed URL.
-- Cloudflare's free plan has usage and runtime limits; review current limits before production use.
+- AI provider orchestration and background agent execution are not implemented yet.
+- Email, WhatsApp, payment providers, marketplace integrations, and financial workflows are not connected.
+- The GitHub CI workflow validates lint, TypeScript, and the Next.js production build. It does not validate Cloudflare credentials, D1 provisioning, Telegram webhook registration, or live production deployment.
+- Do not treat a successful GitHub commit or CI run as proof of a Cloudflare deployment. Confirm the Workers deployment in Cloudflare and test the live URL.
