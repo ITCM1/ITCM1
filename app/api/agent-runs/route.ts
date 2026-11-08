@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getDatabase } from "@/lib/cloudflare";
+import { writeAuditEvent } from "@/lib/audit";
 import { isOwnerAuthenticated } from "@/lib/owner-session";
 
 const runInput = z.object({
@@ -37,6 +38,15 @@ export async function POST(request: NextRequest) {
     await db.prepare(
       "INSERT INTO agent_runs (id, task_id, project_id, agent_key, objective, status, input_summary, created_at) VALUES (?, ?, ?, ?, ?, 'queued', '', ?)"
     ).bind(id, input.taskId ?? null, input.projectId ?? null, input.agentKey, input.objective, createdAt).run();
+    await writeAuditEvent(db, {
+      actorType: "owner",
+      actorId: "owner",
+      action: "agent_run.queued",
+      resourceType: "agent_run",
+      resourceId: id,
+      outcome: "pending",
+      details: { agentKey: input.agentKey, projectId: input.projectId ?? null, taskId: input.taskId ?? null }
+    });
     return NextResponse.json({
       run: { id, ...input, status: "queued", createdAt },
       execution: "queued_only",
