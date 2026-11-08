@@ -19,7 +19,8 @@ The repository uses the OpenNext Cloudflare adapter. A successful GitHub build d
 2. In Workers & Pages > `itcm1` > Settings > Bindings, add a D1 database binding:
    - Variable name: `DB`
    - Database: `itcm-global-ai`
-3. Apply the schema to the remote database:
+3. Copy the D1 `database_id` returned by Cloudflare and add a `d1_databases` entry to `wrangler.jsonc` with `binding: "DB"`, `database_name: "itcm-global-ai"`, and that real `database_id`. A commented template is already present in the file. Do not deploy with the placeholder ID.
+4. Apply the schema to the remote database:
    ```bash
    npx wrangler d1 execute itcm-global-ai --remote --file=migrations/0001_tasks.sql
    ```
@@ -50,9 +51,15 @@ Never paste secrets into GitHub files, screenshots, or chat. For local developme
 
 After deployment, configure the bot webhook to:
 ```
-https://<your-worker-host>/api/telegram/webhook
+https://itcm1.ufstwold.workers.dev/api/telegram/webhook
 ```
-Set Telegram's webhook secret token to the same value as `TELEGRAM_WEBHOOK_SECRET`. Keep the bot token private.
+Use Telegram's official `setWebhook` method with the same secret token as `TELEGRAM_WEBHOOK_SECRET` (replace placeholders locally; never commit or share the bot token):
+```bash
+curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \\
+  -d "url=https://itcm1.ufstwold.workers.dev/api/telegram/webhook" \\
+  -d "secret_token=<TELEGRAM_WEBHOOK_SECRET>"
+```
+Keep the bot token private.
 
 Owner-only commands currently implemented:
 - `/start` or `/help`: show help.
