@@ -28,6 +28,18 @@ After deployment, add these as encrypted secrets / environment variables in Work
 
 Never paste bot tokens into GitHub files, source code, screenshots, or chat.
 
+## Persistent database and owner login
+
+1. In Cloudflare, create a D1 database named `itcm-global-ai`.
+2. Add a D1 binding named `DB` to Worker `itcm1`, pointing to that database.
+3. Apply the SQL migration in `migrations/0001_tasks.sql` to the database (Cloudflare Dashboard > D1 > Console, or Wrangler migrations).
+4. Add these encrypted Worker secrets:
+   - `OWNER_LOGIN_PASSWORD` — a strong, unique owner password.
+   - `SESSION_SECRET` — a random secret of at least 32 bytes.
+5. For local development, set the same variables in `.env.local` and configure a local D1 binding.
+
+The login endpoint is `/api/auth/login`; it issues a 12-hour HttpOnly, SameSite=Strict session cookie. Task read/write/delete endpoints require this owner session. Without the D1 binding and migration, task endpoints return an explicit configuration error; they do not silently claim to save data.
+
 ## Telegram webhook
 
 After deployment, configure Telegram's webhook to the Worker URL and use the same secret token. Then test `/start` and `/status` in the bot.
@@ -35,6 +47,7 @@ After deployment, configure Telegram's webhook to the Worker URL and use the sam
 ## Current limitations
 
 - Telegram webhook currently supports only `/start` and `/status`; it is not yet an autonomous AI agent.
-- Database and AI provider are not configured.
+- The task API and owner session endpoints are implemented, but they require the D1 binding, SQL migration, and owner secrets above before use.
+- AI provider orchestration is not configured.
 - A successful commit is not proof of a successful build or deployment. Confirm the Workers Build is green and test the deployed URL.
 - Cloudflare's free plan has usage and runtime limits; review current limits before production use.
