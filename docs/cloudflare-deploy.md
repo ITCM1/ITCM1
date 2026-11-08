@@ -42,11 +42,19 @@ The login endpoint is `/api/auth/login`; it issues a 12-hour HttpOnly, SameSite=
 
 ## Telegram webhook
 
-After deployment, configure Telegram's webhook to the Worker URL and use the same secret token. Then test `/start` and `/status` in the bot.
+After deployment, configure Telegram's webhook to `https://itcm1.<your-worker-domain>/api/telegram/webhook` with the same secret token. Keep the bot token and webhook secret private. Test these owner-only commands in the bot:
+
+- `/start` or `/help` — show commands.
+- `/status` — check whether database and AI credentials are detected.
+- `/tasks` — list the latest ten tasks.
+- `/task عنوان المهمة` — create a task in D1.
+- `/done TASK_ID` — mark a task complete.
+
+The webhook still does not call an AI model or execute arbitrary business operations.
 
 ## Current limitations
 
-- Telegram webhook currently supports only `/start` and `/status`; it is not yet an autonomous AI agent.
+- Telegram supports owner-only task commands backed by D1, but it is not yet an autonomous AI agent.
 - The task API and owner session endpoints are implemented, but they require the D1 binding, SQL migration, and owner secrets above before use.
 - AI provider orchestration is not configured.
 - A successful commit is not proof of a successful build or deployment. Confirm the Workers Build is green and test the deployed URL.
