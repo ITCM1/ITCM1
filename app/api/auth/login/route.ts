@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createOwnerSession, ownerCookie } from "@/lib/owner-session";
+import { createOwnerSession, ownerCookie, ownerSessionMaxAge } from "@/lib/owner-session";
+import { getRuntimeEnv } from "@/lib/runtime-env";
+
+function constantTimeTextEqual(left: string, right: string): boolean {
+  const a = new TextEncoder().encode(left);
+  const b = new TextEncoder().encode(right);
+  if (a.length !== b.length) return false;
+  let difference = 0;
+  for (let index = 0; index < a.length; index += 1) difference |= a[index] ^ b[index];
+  return difference === 0;
+}
 
 export async function POST(request: NextRequest) {
-  const expectedPassword = process.env.OWNER_LOGIN_PASSWORD;
-  if (!expectedPassword || !process.env.SESSION_SECRET) {
-    return NextResponse.json(
-      { error: "Owner authentication is not configured. Set OWNER_LOGIN_PASSWORD and SESSION_SECRET." },
-      { status: 503 }
-    );
+  const [expectedPassword, sessionSecret] = await Promise.all([
+    getRuntimeEnv("OWNER_LOGIN_PASSWORD"),
+    getRuntimeEnv("SESSION_SECRET")
+  ]);
+  if (!expectedPassword || !sessionSecret) {
+    return NextResponse.json({ error: "Owner authentication is not configured. Add OWNER_LOGIN_PASSWORD and SESSION_SECRET as Worker secrets." }, { status: 503 });
   }
 
   let body: { password?: unknown };
@@ -17,7 +27,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  if (typeof body.password !== "string" || body.password.length > 512 || body.password !== expectedPassword) {
+  if (typeof body.password !== "string" || body.password.length > 512 || !constantTimeTextEqual(body.password, expectedPassword)) {
     return NextResponse.json({ error: "Invalid password." }, { status: 401 });
   }
 
@@ -27,10 +37,10 @@ export async function POST(request: NextRequest) {
   const response = NextResponse.json({ authenticated: true });
   response.cookies.set(ownerCookie, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: request.nextUrl.protocol === "https:",
     sameSite: "strict",
     path: "/",
-    maxAge: 60 * 60 * 12
+    maxAge: ownerSessionMaxAge
   });
   return response;
 }
