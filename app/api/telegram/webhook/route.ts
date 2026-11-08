@@ -1,72 +1,138 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getDatabase } from "@/lib/cloudflare";
+import { getRuntimeEnv } from "@/lib/runtime-env";
 
 type TelegramUpdate = {
-  message?: {
-    text?: string;
-    chat?: { id: number };
-    from?: { id: number };
-  };
+  message?: { text?: string; chat?: { id: number }; from?: { id: number } };
 };
 
-async function sendTelegramMessage(chatId: number, text: string) {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  if (!token) throw new Error("TELEGRAM_BOT_TOKEN is not configured");
+type TelegramTask = { id: string; title: string; status: string; department: string };
 
+async function sendTelegramMessage(chatId: number, message: string) {
+  const token = await getRuntimeEnv("TELEGRAM_BOT_TOKEN");
+  if (!token) throw new Error("TELEGRAM_BOT_TOKEN is not configured");
   const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, text })
+    body: JSON.stringify({ chat_id: chatId, text: message })
   });
+  if (!response.ok) throw new Error(`Telegram sendMessage failed: ${response.status}`);
+}
 
-  if (!response.ok) {
-    throw new Error(`Telegram sendMessage failed: ${response.status}`);
-  }
+function helpText() {
+  return [
+    "ITCM GLOBAL AI — أوامر المالك",
+    "/status — حالة الاتصالات",
+    "/tasks — آخر المهام",
+    "/task عنوان المهمة — إنشاء مهمة",
+    "/done رقم المهمة — إتمام مهمة",
+    "/help — المساعدة"
+  ].join("\n");
 }
 
 export async function POST(request: NextRequest) {
-  const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  const expectedSecret = await getRuntimeEnv("TELEGRAM_WEBHOOK_SECRET");
   const receivedSecret = request.headers.get("x-telegram-bot-api-secret-token");
-
   if (!expectedSecret || receivedSecret !== expectedSecret) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const update = (await request.json()) as TelegramUpdate;
+  let update: TelegramUpdate;
+  try {
+    update = await request.json() as TelegramUpdate;
+  } catch {
+    return NextResponse.json({ ok: true, ignored: true });
+  }
+
   const message = update.message;
   const chatId = message?.chat?.id;
   const senderId = message?.from?.id;
   const text = message?.text?.trim();
+  if (!chatId || !senderId || !text) return NextResponse.json({ ok: true, ignored: true });
 
-  if (!chatId || !senderId || !text) {
-    return NextResponse.json({ ok: true, ignored: true });
-  }
-
-  const ownerIds = (process.env.TELEGRAM_OWNER_USER_IDS ?? "")
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean);
-
+  const ownerIds = (await getRuntimeEnv("TELEGRAM_OWNER_USER_IDS") ?? "")
+    .split(",").map((value) => value.trim()).filter(Boolean);
   if (!ownerIds.includes(String(senderId))) {
     await sendTelegramMessage(chatId, "هذا البوت خاص بمالك ITCM GLOBAL AI. ليس لديك إذن لتنفيذ الأوامر.");
     return NextResponse.json({ ok: true, authorized: false });
   }
 
-  if (text === "/start") {
-    await sendTelegramMessage(
-      chatId,
-      "مرحباً بك في ITCM GLOBAL AI. تم استلام اتصال Telegram والتحقق من حساب المالك. واجهة الأوامر الأساسية جاهزة؛ ربط الذكاء الاصطناعي وتنفيذ المهام سيُفعّل بعد إعداد مزود الذكاء الاصطناعي وقاعدة البيانات."
-    );
-  } else if (text === "/status") {
-    await sendTelegramMessage(
-      chatId,
-      "ITCM GLOBAL AI\nTelegram webhook: active\nOwner authorization: active\nAI orchestration: not configured yet\nDatabase and task queue: not configured yet"
-    );
-  } else {
-    await sendTelegramMessage(
-      chatId,
-      "وصلني أمرك، لكن محرك تنفيذ المهام لم يُربط بعد. حالياً الأوامر المتاحة هي /start و /status."
-    );
-  }
+  try {
+    if (text === "/start" || text === "/help") {
+      await sendTelegramMessage(chatId, helpText());
+      return NextResponse.json({ ok: true, command: "help" });
+    }
 
-  return NextResponse.json({ ok: true });
+    if (text === "/status") {
+      const [db, aiProvider, aiKey] = await Promise.all([
+        getDatabase(), getRuntimeEnv("AI_PROVIDER"), getRuntimeEnv("AI_API_KEY")
+      ]);
+      await sendTelegramMessage(chatId, [
+        "ITCM GLOBAL AI — الحالة",
+        "Telegram webhook: active",
+        `Database binding: ${db ? "detected" : "not configured"}`,
+        `AI provider credentials: ${aiProvider && aiKey ? "configured (execution adapter pending)" : "not configured"}`,
+        "Owner verification: active"
+      ].join("\n"));
+      return NextResponse.json({ ok: true, command: "status" });
+    }
+
+    if (text === "/tasks") {
+      const db = await getDatabase();
+      if (!db) {
+        await sendTelegramMessage(chatId, "قاعدة البيانات غير مربوطة بعد. أضف D1 binding باسم DB وطبّق migration.");
+        return NextResponse.json({ ok: true, command: "tasks", configured: false });
+      }
+      const result = await db.prepare(
+        "SELECT id, title, status, department FROM tasks ORDER BY created_at DESC LIMIT 10"
+      ).bind().all<TelegramTask>();
+      const tasks = result.results ?? [];
+      const lines = tasks.map((task) => `• ${task.title} [${task.status}] — ID: ${task.id}`);
+      await sendTelegramMessage(chatId, tasks.length ? ["آخر المهام:", ...lines].join("\n") : "لا توجد مهام مسجلة حالياً.");
+      return NextResponse.json({ ok: true, command: "tasks", count: tasks.length });
+    }
+
+    if (text.startsWith("/task")) {
+      const title = text.slice(5).trim();
+      if (!title || title.length > 120) {
+        await sendTelegramMessage(chatId, "اكتب الأمر هكذا: /task عنوان المهمة (حتى 120 حرفاً).");
+        return NextResponse.json({ ok: true, command: "task", created: false });
+      }
+      const db = await getDatabase();
+      if (!db) {
+        await sendTelegramMessage(chatId, "لم يتم إنشاء المهمة: قاعدة D1 غير مربوطة. أضف binding باسم DB وطبّق migration.");
+        return NextResponse.json({ ok: true, command: "task", configured: false });
+      }
+      const id = crypto.randomUUID();
+      const createdAt = new Date().toISOString();
+      await db.prepare(
+        "INSERT INTO tasks (id, title, description, department, priority, status, created_at) VALUES (?, ?, '', 'Management', 'normal', 'pending', ?)"
+      ).bind(id, title, createdAt).run();
+      await sendTelegramMessage(chatId, `تم تسجيل المهمة في قاعدة البيانات.\nالعنوان: ${title}\nالحالة: pending\nID: ${id}`);
+      return NextResponse.json({ ok: true, command: "task", created: true, id });
+    }
+
+    if (text.startsWith("/done")) {
+      const id = text.slice(5).trim();
+      if (!id || id.length > 80) {
+        await sendTelegramMessage(chatId, "اكتب الأمر هكذا: /done رقم_المهمة");
+        return NextResponse.json({ ok: true, command: "done", updated: false });
+      }
+      const db = await getDatabase();
+      if (!db) {
+        await sendTelegramMessage(chatId, "قاعدة البيانات غير مربوطة. لم يتم تعديل أي مهمة.");
+        return NextResponse.json({ ok: true, command: "done", configured: false });
+      }
+      const result = await db.prepare("UPDATE tasks SET status = 'done' WHERE id = ?").bind(id).run();
+      const changes = Number(result.meta?.changes ?? 0);
+      await sendTelegramMessage(chatId, changes > 0 ? `تم إتمام المهمة: ${id}` : `لم أجد مهمة بهذا الرقم: ${id}`);
+      return NextResponse.json({ ok: true, command: "done", updated: changes > 0 });
+    }
+
+    await sendTelegramMessage(chatId, "الأمر غير معروف. أرسل /help لعرض الأوامر المتاحة.");
+    return NextResponse.json({ ok: true, command: "unknown" });
+  } catch {
+    await sendTelegramMessage(chatId, "وقع خطأ أثناء تنفيذ الأمر. لم أؤكد نجاح العملية؛ تحقق من إعدادات D1 وTelegram ثم أعد المحاولة.");
+    return NextResponse.json({ error: "Command execution failed" }, { status: 500 });
+  }
 }
