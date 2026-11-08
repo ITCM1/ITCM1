@@ -19,11 +19,11 @@ The repository uses the OpenNext Cloudflare adapter. A successful GitHub build d
 2. In Workers & Pages > `itcm1` > Settings > Bindings, add a D1 database binding:
    - Variable name: `DB`
    - Database: `itcm-global-ai`
-3. Copy the D1 `database_id` returned by Cloudflare and add a `d1_databases` entry to `wrangler.jsonc` with `binding: "DB"`, `database_name: "itcm-global-ai"`, and that real `database_id`. A commented template is already present in the file. Do not deploy with the placeholder ID.
+3. Confirm that `wrangler.jsonc` contains the actual D1 `database_id` and the `DB` binding. The repository currently contains the database ID supplied by the owner; do not replace it with a placeholder.
 4. Apply the schema to the remote database:
    ```bash
-   npx wrangler d1 execute itcm-global-ai --remote --file=migrations/0001_tasks.sql
-   npx wrangler d1 execute itcm-global-ai --remote --file=migrations/0002_orchestration.sql
+   npm run db:migrate:remote
+   npm run db:list:remote
    ```
 5. Confirm the binding is present on the deployed Worker. Until this is done, task API operations return an explicit 503 configuration error.
 
