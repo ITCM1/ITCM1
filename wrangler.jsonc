@@ -8,8 +8,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "itcm-global-ai",
-      "database_id": "5343bfa30a4a88345600fff39ff36ce4"
+      "database_name": "tcm-global-ai",
+      "database_id": "79575ae5-2083-4eb5-987f-ffd9079280ec"
     }
   ],
   "assets": {
