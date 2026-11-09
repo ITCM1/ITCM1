@@ -1,5 +1,5 @@
 {
-  "name": "itcm-global-ai",
+  "name": "tcm-global-ai",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -13,9 +13,9 @@
     "deploy": "npm run build:cloudflare && opennextjs-cloudflare deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "build:cloudflare": "opennextjs-cloudflare build",
-    "db:migrate:remote": "wrangler d1 migrations apply itcm-global-ai --remote",
-    "db:migrate:local": "wrangler d1 migrations apply itcm-global-ai --local",
-    "db:list:remote": "wrangler d1 migrations list itcm-global-ai --remote"
+    "db:migrate:remote": "wrangler d1 migrations apply tcm-global-ai --remote",
+    "db:migrate:local": "wrangler d1 migrations apply tcm-global-ai --local",
+    "db:list:remote": "wrangler d1 migrations list tcm-global-ai --remote"
   },
   "dependencies": {
     "next": "^15.5.0",
