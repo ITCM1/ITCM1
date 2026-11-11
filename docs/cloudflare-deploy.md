@@ -5,76 +5,60 @@ The repository uses the OpenNext Cloudflare adapter. A successful GitHub build d
 ## Connect GitHub to Cloudflare
 
 1. Sign in at https://dash.cloudflare.com/.
-2. Open **Workers & Pages** and create an application by importing **ITCM1/ITCM1**.
+2. Open **Workers & Pages** and import **ITCM1/ITCM1**.
 3. Select the `main` branch and repository root.
-4. Use build command `npm run build` and deploy command `npx wrangler deploy`.
+4. Use the OpenNext build command `npm run build:cloudflare` and deploy command `npx wrangler deploy`.
 5. Use Worker name `itcm1`. Do not select a static Pages preset.
 
 ## Create and connect the D1 database
 
-1. Create a D1 database named `itcm-global-ai` in Cloudflare Dashboard > Storage & databases > D1, or run:
-   ```bash
-   npx wrangler d1 create itcm-global-ai
-   ```
-2. In Workers & Pages > `itcm1` > Settings > Bindings, add a D1 database binding:
+1. Create a D1 database named `itcm-global-ai`, or use the existing database configured in `wrangler.jsonc`.
+2. In Workers & Pages > `itcm1` > Settings > Bindings, add a D1 binding:
    - Variable name: `DB`
    - Database: `itcm-global-ai`
-3. Confirm that `wrangler.jsonc` contains the actual D1 `database_id` and the `DB` binding. The repository currently contains the database ID supplied by the owner; do not replace it with a placeholder.
-4. Apply the schema to the remote database:
+3. Confirm `wrangler.jsonc` contains the real database ID and `DB` binding.
+4. Apply both migrations:
    ```bash
    npm run db:migrate:remote
    npm run db:list:remote
    ```
-5. Confirm the binding is present on the deployed Worker. Until this is done, task API operations return an explicit 503 configuration error.
+5. Confirm the Worker has the binding. Task and agent APIs return an explicit configuration error if it is missing.
 
-## Configure secrets
+## Configure encrypted Worker secrets
 
-Add these values under Worker > Settings > Variables and Secrets. Use encrypted secrets for credentials.
+In Worker > Settings > Variables and Secrets, configure the following. Do not put credentials in source files or chat.
 
-- `OWNER_LOGIN_PASSWORD`: a strong, unique owner password.
-- `SESSION_SECRET`: a random secret with at least 32 bytes of entropy.
-- `TELEGRAM_BOT_TOKEN`: token from Telegram BotFather.
-- `TELEGRAM_WEBHOOK_SECRET`: a new random secret used to verify webhook requests.
-- `TELEGRAM_OWNER_USER_IDS`: owner Telegram numeric ID `787937965`.
-- `AI_PROVIDER` and `AI_API_KEY`: only when an AI provider has been selected and its API key is ready.
+- `OWNER_LOGIN_PASSWORD`: strong owner password.
+- `SESSION_SECRET`: random secret with at least 32 bytes of entropy.
+- `AI_API_KEY`: API key for the chosen OpenAI-compatible provider.
+- `AI_MODEL`: model identifier supported by that provider.
+- `AI_BASE_URL`: optional API base URL; defaults to `https://api.openai.com/v1`.
+- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, and `TELEGRAM_OWNER_USER_IDS`: required only for Telegram bot operation.
 
-Never paste secrets into GitHub files, screenshots, or chat. For local development, use `.env.local` and a local D1 binding.
+The agent executor uses the OpenAI-compatible `/chat/completions` endpoint. It produces analysis, plans, drafts, and recommendations only. It has no tools for sending messages, publishing content, executing shell commands, or making payments. Missing AI configuration produces an explicit `AI_PROVIDER_NOT_CONFIGURED` failure rather than a fake success.
 
 ## Owner login and task management
 
-- Open the deployed Worker URL.
-- Sign in using `OWNER_LOGIN_PASSWORD`.
-- The server issues a 12-hour HttpOnly, SameSite=Strict signed session cookie.
-- Task read, create, update, and delete operations require the owner session and use the D1 `tasks` table.
-- The dashboard displays a configuration error instead of pretending to save when D1 is missing.
+- Open the deployed Worker URL and sign in with `OWNER_LOGIN_PASSWORD`.
+- The server issues a signed, expiring HttpOnly session cookie.
+- Task and agent-run APIs require owner authentication and D1.
+- The dashboard/API must report configuration errors instead of pretending to save data.
 
-## Telegram commands
+## Telegram
 
-After deployment, configure the bot webhook to:
+After deployment, configure the Telegram webhook at:
+
 ```
 https://itcm1.ufstwold.workers.dev/api/telegram/webhook
 ```
-Use Telegram's official `setWebhook` method with the same secret token as `TELEGRAM_WEBHOOK_SECRET` (replace placeholders locally; never commit or share the bot token):
-```bash
-curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \\
-  -d "url=https://itcm1.ufstwold.workers.dev/api/telegram/webhook" \\
-  -d "secret_token=<TELEGRAM_WEBHOOK_SECRET>"
-```
-Keep the bot token private.
 
-Owner-only commands currently implemented:
-- `/start` or `/help`: show help.
-- `/status`: report whether database and AI credentials are detected.
-- `/tasks`: list the latest ten tasks from D1.
-- `/task عنوان المهمة`: create a task in D1.
-- `/done TASK_ID`: mark a task complete.
+Use Telegram's official `setWebhook` method with the configured secret token. Keep the bot token private.
 
-These Telegram task commands are real D1-backed operations when the database binding and migration are configured. They do not call an AI model, execute arbitrary commands, send customer messages, spend money, or perform financial transfers.
+Telegram task commands are limited to the implemented D1-backed operations. They do not execute arbitrary commands or perform financial actions.
 
 ## Current implementation limits
 
-- The D1 schema now includes projects, agent runs, approvals, and audit events (migration `0002_orchestration.sql`), but APIs, audit-writing services, approval workflows, and background execution are not implemented yet.
-- No AI model is connected until `AI_PROVIDER`, `AI_API_KEY`, and a supported provider adapter are configured and tested.
-- Email, WhatsApp, payment providers, marketplace integrations, and financial workflows are not connected.
-- The GitHub CI workflow validates lint, TypeScript, and the Next.js production build. It does not validate Cloudflare credentials, D1 provisioning, Telegram webhook registration, or live production deployment.
-- Do not treat a successful GitHub commit or CI run as proof of a Cloudflare deployment. Confirm the Workers deployment in Cloudflare and test the live URL.
+- Agent runs execute synchronously in the request and are subject to Worker/request duration limits. A durable queue, retries, cancellation, and multi-agent delegation remain future work.
+- The approval API records owner decisions, but the current text-only AI executor does not initiate external actions requiring approval.
+- Email, WhatsApp, payment providers, and marketplace integrations are not connected.
+- CI verifies code and build steps only. Confirm the Worker deployment in Cloudflare and test the live URL before treating the service as production-ready.
