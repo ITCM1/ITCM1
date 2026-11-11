@@ -4,45 +4,45 @@
 **Product:** Secure business operations command center  
 **Repository:** ITCM1/ITCM1
 
-ITCM GLOBAL AI is being developed as a secure business operations platform. The web dashboard is the owner workspace, with Telegram as a limited owner command channel.
+ITCM GLOBAL AI is a secure business operations platform in active development. The web dashboard is the owner workspace, with Telegram as a limited owner command channel.
 
 ## Implemented
 
 - Next.js + TypeScript owner dashboard.
 - Owner password login with signed, expiring, HttpOnly session cookies.
 - Owner-authenticated task API: create, list, update, and delete.
-- Cloudflare D1 schema for durable task records.
-- Runtime environment lookup for Cloudflare Worker secrets and bindings.
-- Health endpoint reports whether expected integrations and the D1 binding are detected.
-- Telegram owner verification and D1-backed commands: `/tasks`, `/task <title>`, and `/done <task-id>`, plus `/help` and `/status`.
-- GitHub Actions CI validates lint, TypeScript, and the Next.js production build.
+- Cloudflare D1 schema for tasks, projects, agent runs, approvals, and audit events.
+- Owner-authenticated agent-run API with synchronous execution through an OpenAI-compatible chat-completions endpoint.
+- Agent execution records success/failure, provider/model, output, and audit events in D1.
+- Agent runs are limited to analysis, plans, drafts, and recommendations; they cannot perform external actions or move money.
+- Telegram owner verification and D1-backed task commands.
+- GitHub Actions CI validates lint, TypeScript, Next.js, and Cloudflare OpenNext builds.
 
 ## Required setup
 
-Task management and Telegram task commands require:
 - Cloudflare D1 database bound to the Worker as `DB`.
-- SQL migration `migrations/0001_tasks.sql` applied to the remote database.
+- Apply migrations `0001_tasks.sql` and `0002_orchestration.sql`.
 - Worker secrets `OWNER_LOGIN_PASSWORD` and `SESSION_SECRET`.
-- Telegram secrets `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, and owner ID variable `TELEGRAM_OWNER_USER_IDS`.
+- To enable AI agent execution, configure `AI_API_KEY` and `AI_MODEL`; optionally set `AI_BASE_URL` for an OpenAI-compatible provider. The default base URL is `https://api.openai.com/v1`.
+- Telegram secrets and owner allowlist must be configured for Telegram operations.
 
-See [Cloudflare deployment and setup](docs/cloudflare-deploy.md). Without the external bindings and secrets, endpoints return explicit configuration errors instead of claiming that data was saved.
+See [Cloudflare deployment and setup](docs/cloudflare-deploy.md). Without required external bindings and secrets, endpoints return explicit configuration errors.
 
 ## Not yet implemented or connected
 
-- AI provider adapter, master orchestrator, and autonomous agent execution.
-- Durable background queue, agent run history, and approval workflow.
+- Durable background queue, scheduled retries, and multi-agent orchestration.
 - Email and WhatsApp delivery.
 - Stripe, Paddle, marketplace, and other payment integrations.
 - Production Cloudflare deployment verification.
 
 ## Security principles
 
-- Owner-only task and Telegram operations.
-- Secrets stay in environment variables or encrypted Worker secrets, never in source control.
+- Owner-only task and agent operations.
+- Secrets stay in encrypted Worker secrets, never in source control or ordinary chat.
 - Contracts, signatures, transfers, refunds, advertising spend, bank changes, and other legally or financially binding actions require explicit owner approval.
-- Agent actions must be permission-scoped and auditable.
+- The current AI executor produces text only. It does not send communications, publish content, execute commands, or perform financial actions.
 - Never report a payment, sale, deployment, or external action as successful without confirmation from the relevant service.
 
 ## Validation
 
-GitHub Actions verifies lint, TypeScript, and the Next.js production build. It does not verify Cloudflare credentials, D1 provisioning, Telegram webhook registration, or live production deployment.
+GitHub Actions validates code quality and production builds. It does not prove Cloudflare credentials, D1 provisioning, Telegram webhook registration, AI-provider credentials, or live production deployment.
