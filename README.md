@@ -11,8 +11,8 @@ ITCM GLOBAL AI is a secure business operations platform in active development. T
 - Next.js + TypeScript owner dashboard.
 - Owner password login with signed, expiring, HttpOnly session cookies.
 - Owner-authenticated task API: create, list, update, and delete.
-- Cloudflare D1 schema for tasks, projects, agent runs, approvals, and audit events.
-- Owner-authenticated agent-run API with synchronous execution through an OpenAI-compatible chat-completions endpoint.
+- Cloudflare D1 schema for tasks, projects, agent runs, approvals, audit events, and a durable agent queue.
+- Owner-authenticated agent-run API that enqueues work in D1; an authenticated dispatcher claims jobs, executes the OpenAI-compatible chat-completions request, and records outcomes.
 - Agent execution records success/failure, provider/model, output, and audit events in D1.
 - Agent runs are limited to analysis, plans, drafts, and recommendations; they cannot perform external actions or move money.
 - Telegram owner verification and D1-backed task commands.
@@ -21,10 +21,10 @@ ITCM GLOBAL AI is a secure business operations platform in active development. T
 ## Required setup
 
 - Cloudflare D1 database bound to the Worker as `DB`.
-- Apply migrations `0001_tasks.sql` and `0002_orchestration.sql`.
-- Worker secrets `OWNER_LOGIN_PASSWORD` and `SESSION_SECRET`.
+- Apply migrations `0001_tasks.sql`, `0002_orchestration.sql`, and `0003_agent_queue.sql`.
+- Worker secrets `OWNER_LOGIN_PASSWORD`, `SESSION_SECRET`, and `AGENT_QUEUE_SECRET`.
 - To enable AI agent execution, configure `AI_API_KEY` and `AI_MODEL`; optionally set `AI_BASE_URL` for an OpenAI-compatible provider. The default base URL is `https://api.openai.com/v1`.
-- Telegram secrets and owner allowlist must be configured for Telegram operations.
+- Add the same `AGENT_QUEUE_SECRET` value as a GitHub Actions repository secret so the scheduled queue workflow can call the protected dispatcher.\n- Telegram secrets and owner allowlist must be configured for Telegram operations.
 
 See [Cloudflare deployment and setup](docs/cloudflare-deploy.md). Without required external bindings and secrets, endpoints return explicit configuration errors.
 
