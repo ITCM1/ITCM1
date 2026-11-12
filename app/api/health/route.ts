@@ -34,7 +34,8 @@ export async function GET() {
       telegram: telegramToken && telegramSecret ? "configured" : "not_configured",
       database: databaseStatus,
       ai_provider: aiKey && aiModel ? "configured" : "not_configured",
-      owner_auth: ownerPassword && sessionSecret ? "configured" : "not_configured",\n      agent_queue_dispatch: queueSecret ? "configured" : "not_configured"
+      owner_auth: ownerPassword && sessionSecret ? "configured" : "not_configured",
+      agent_queue_dispatch: queueSecret ? "configured" : "not_configured"
     },
     database_schema: schema,
     timestamp: new Date().toISOString()
