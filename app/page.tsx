@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import AgentConsole from "@/app/agent-console";
 
 type TaskStatus = "pending" | "in_progress" | "done";
 type TaskPriority = "high" | "normal" | "low";
@@ -276,6 +277,8 @@ export default function HomePage() {
             </article>
           ))}
         </div>
+
+        <AgentConsole />
 
         <section className="notice" id="integrations">
           <div className="notice-icon">!</div>
