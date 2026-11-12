@@ -91,3 +91,30 @@ footer{margin-top:35px;color:#68717d;font-size:10px;letter-spacing:1px}footer sp
 .topbar-actions{display:flex;align-items:center;gap:10px}
 .primary-button:disabled{opacity:.55;cursor:not-allowed}
 @media(max-width:600px){.topbar-actions{width:100%;justify-content:space-between}.auth-card{padding:26px}}
+
+
+/* Real AI agent console */
+.agent-console{margin-top:42px;padding:20px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.agent-console .section-heading{margin:0 0 10px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.agent-description{color:var(--muted);font-size:11px;line-height:1.7;margin:0 0 16px}
+.agent-form{display:grid;gap:12px;padding:16px;background:#101720;border:1px solid var(--line);border-radius:9px}
+.agent-form textarea{resize:vertical}
+.agent-form .primary-button{justify-self:start;min-width:145px}
+.agent-output{margin-top:14px;padding:16px;border:1px solid #756342;background:#17150f;border-radius:9px}
+.agent-output strong{font-size:12px;color:var(--gold)}
+.agent-output pre,.agent-run-row pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#d8dce2;font:12px/1.7 ui-monospace,SFMono-Regular,monospace;margin:10px 0 0}
+.agent-history{margin-top:18px}
+.agent-history-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.agent-history-heading strong{font-size:12px}
+.agent-run-row{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:13px 0;border-top:1px solid var(--line)}
+.agent-run-main{min-width:0}
+.agent-run-main strong{font-size:12px}
+.agent-run-main p{font-size:11px;color:#aeb7c2;line-height:1.6;margin:5px 0}
+.agent-run-main small{font-size:10px;color:var(--muted)}
+.agent-run-main details{margin:8px 0}
+.agent-run-main summary{font-size:11px;color:var(--gold);cursor:pointer}
+.agent-status{flex:none;font-size:9px;text-transform:uppercase;letter-spacing:.5px;padding:5px 8px;border-radius:20px;border:1px solid #46515e;color:#bdc7d2}
+.status-succeeded{border-color:#315c43;color:#9bdbb2}
+.status-failed{border-color:#75413b;color:#ffc1b8}
+.status-running,.status-queued,.status-planning{border-color:#756342;color:var(--gold)}
+@media(max-width:600px){.agent-console{padding:14px}.agent-run-row{flex-direction:column}.agent-console .section-heading{align-items:flex-start}}
