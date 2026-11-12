@@ -17,7 +17,7 @@ The repository uses the OpenNext Cloudflare adapter. A successful GitHub build d
    - Variable name: `DB`
    - Database: `itcm-global-ai`
 3. Confirm `wrangler.jsonc` contains the real database ID and `DB` binding.
-4. Apply both migrations:
+4. Apply all migrations:
    ```bash
    npm run db:migrate:remote
    npm run db:list:remote
@@ -32,10 +32,10 @@ In Worker > Settings > Variables and Secrets, configure the following. Do not pu
 - `SESSION_SECRET`: random secret with at least 32 bytes of entropy.
 - `AI_API_KEY`: API key for the chosen OpenAI-compatible provider.
 - `AI_MODEL`: model identifier supported by that provider.
-- `AI_BASE_URL`: optional API base URL; defaults to `https://api.openai.com/v1`.
+- `AI_BASE_URL`: optional API base URL; defaults to `https://api.openai.com/v1`.\n- `AGENT_QUEUE_SECRET`: strong random secret used only by the scheduled queue dispatcher; configure the same value as the GitHub Actions repository secret.
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, and `TELEGRAM_OWNER_USER_IDS`: required only for Telegram bot operation.
 
-The agent executor uses the OpenAI-compatible `/chat/completions` endpoint. It produces analysis, plans, drafts, and recommendations only. It has no tools for sending messages, publishing content, executing shell commands, or making payments. Missing AI configuration produces an explicit `AI_PROVIDER_NOT_CONFIGURED` failure rather than a fake success.
+The agent executor uses the OpenAI-compatible `/chat/completions` endpoint. Agent runs are first stored as queued records in D1. The scheduled GitHub Actions workflow calls the protected `/api/agent-queue/dispatch` endpoint every five minutes and processes at most one run per invocation. Failed runs are retried up to three attempts with increasing delays; abandoned running leases can be reclaimed after 90 seconds. It produces analysis, plans, drafts, and recommendations only. It has no tools for sending messages, publishing content, executing shell commands, or making payments. Missing AI configuration produces an explicit `AI_PROVIDER_NOT_CONFIGURED` failure rather than a fake success.
 
 ## Owner login and task management
 
@@ -58,7 +58,7 @@ Telegram task commands are limited to the implemented D1-backed operations. They
 
 ## Current implementation limits
 
-- Agent runs execute synchronously in the request and are subject to Worker/request duration limits. A durable queue, retries, cancellation, and multi-agent delegation remain future work.
+- The D1-backed queue and retry scheduling are implemented. The GitHub Actions schedule must be enabled and `AGENT_QUEUE_SECRET` configured for automatic dispatch. It processes at most one job per five-minute schedule; this is a basic queue runner, not high-throughput orchestration. Cancellation and multi-agent delegation remain future work.
 - The approval API records owner decisions, but the current text-only AI executor does not initiate external actions requiring approval.
 - Email, WhatsApp, payment providers, and marketplace integrations are not connected.
 - CI verifies code and build steps only. Confirm the Worker deployment in Cloudflare and test the live URL before treating the service as production-ready.
