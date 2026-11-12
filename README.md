@@ -30,7 +30,7 @@ See [Cloudflare deployment and setup](docs/cloudflare-deploy.md). Without requir
 
 ## Not yet implemented or connected
 
-- Durable background queue, scheduled retries, and multi-agent orchestration.
+- Multi-agent delegation, cancellation, and high-throughput queue processing. The scheduled dispatcher currently processes at most one job every five minutes.
 - Email and WhatsApp delivery.
 - Stripe, Paddle, marketplace, and other payment integrations.
 - Production Cloudflare deployment verification.
