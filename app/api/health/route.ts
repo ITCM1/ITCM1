@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import { getDatabase } from "@/lib/cloudflare";
 import { getRuntimeEnv } from "@/lib/runtime-env";
 
-const requiredTables = ["tasks", "projects", "agent_runs", "approvals", "audit_events"] as const;
+const requiredTables = ["tasks", "projects", "agent_runs", "approvals", "audit_events", "agent_queue"] as const;
 
 export async function GET() {
-  const [database, telegramToken, telegramSecret, aiKey, aiModel, ownerPassword, sessionSecret] = await Promise.all([
+  const [database, telegramToken, telegramSecret, aiKey, aiModel, ownerPassword, sessionSecret, queueSecret] = await Promise.all([
     getDatabase(), getRuntimeEnv("TELEGRAM_BOT_TOKEN"), getRuntimeEnv("TELEGRAM_WEBHOOK_SECRET"),
-    getRuntimeEnv("AI_API_KEY"), getRuntimeEnv("AI_MODEL"), getRuntimeEnv("OWNER_LOGIN_PASSWORD"), getRuntimeEnv("SESSION_SECRET")
+    getRuntimeEnv("AI_API_KEY"), getRuntimeEnv("AI_MODEL"), getRuntimeEnv("OWNER_LOGIN_PASSWORD"), getRuntimeEnv("SESSION_SECRET"), getRuntimeEnv("AGENT_QUEUE_SECRET")
   ]);
 
   let schema: Record<string, boolean> = Object.fromEntries(requiredTables.map((table) => [table, false]));
@@ -16,7 +16,7 @@ export async function GET() {
   if (database) {
     try {
       const result = await database.prepare(
-        "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN (?, ?, ?, ?, ?)"
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN (?, ?, ?, ?, ?, ?)"
       ).bind(...requiredTables).all<{ name: string }>();
       const present = new Set((result.results ?? []).map((row) => row.name));
       schema = Object.fromEntries(requiredTables.map((table) => [table, present.has(table)]));
@@ -34,7 +34,7 @@ export async function GET() {
       telegram: telegramToken && telegramSecret ? "configured" : "not_configured",
       database: databaseStatus,
       ai_provider: aiKey && aiModel ? "configured" : "not_configured",
-      owner_auth: ownerPassword && sessionSecret ? "configured" : "not_configured"
+      owner_auth: ownerPassword && sessionSecret ? "configured" : "not_configured",\n      agent_queue_dispatch: queueSecret ? "configured" : "not_configured"
     },
     database_schema: schema,
     timestamp: new Date().toISOString()
