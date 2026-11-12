@@ -22,6 +22,28 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install
+      - name: Validate D1 migration schema
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          import sqlite3
+
+          database = sqlite3.connect(":memory:")
+          for migration in sorted(pathlib.Path("migrations").glob("*.sql")):
+              database.executescript(migration.read_text(encoding="utf-8"))
+
+          expected = {"tasks", "projects", "agent_runs", "approvals", "audit_events"}
+          actual = {
+              row[0]
+              for row in database.execute(
+                  "SELECT name FROM sqlite_master WHERE type = 'table'"
+              )
+          }
+          missing = expected - actual
+          if missing:
+              raise SystemExit(f"Missing D1 tables after migrations: {sorted(missing)}")
+          print(f"Validated {len(expected)} required tables across all migrations.")
+          PY
       - name: Lint
         run: npm run lint
       - name: Type check
