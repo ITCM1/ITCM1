@@ -12,6 +12,16 @@ export type AgentExecutionResult = {
   output: string;
 };
 
+export async function isAgentProviderConfigured(): Promise<boolean> {
+  try {
+    const context = await getCloudflareContext({ async: true });
+    const env = context.env as unknown as AgentEnvironment;
+    return Boolean(env.AI_API_KEY?.trim() && env.AI_MODEL?.trim());
+  } catch {
+    return false;
+  }
+}
+
 export async function executeAgentObjective(input: {
   agentKey: string;
   objective: string;
