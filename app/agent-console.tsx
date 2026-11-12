@@ -33,6 +33,7 @@ export default function AgentConsole() {
   const [agentKey, setAgentKey] = useState<string>("master-orchestrator");
   const [objective, setObjective] = useState("");
   const [runs, setRuns] = useState<AgentRun[]>([]);
+  const [providerConfigured, setProviderConfigured] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -43,8 +44,9 @@ export default function AgentConsole() {
     try {
       const response = await fetch("/api/agent-runs", { cache: "no-store" });
       if (!response.ok) throw new Error(await responseError(response));
-      const body = await response.json() as { runs: AgentRun[] };
+      const body = await response.json() as { runs: AgentRun[]; providerConfigured?: boolean };
       setRuns(body.runs ?? []);
+      setProviderConfigured(body.providerConfigured === true);
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load agent history.");
@@ -89,7 +91,7 @@ export default function AgentConsole() {
         <div><span className="eyebrow">AI OPERATIONS</span><h2>AI Agent Console</h2></div>
         <button className="secondary-button" type="button" onClick={() => void loadRuns()} disabled={loading}>{loading ? "Refreshing…" : "Refresh runs"}</button>
       </div>
-      <p className="agent-description">Send a real analysis or planning request to the selected AI agent. External actions, publishing, messages and payments are not enabled.</p>
+      <p className="agent-description">Send a real analysis or planning request to the selected AI agent. {providerConfigured === true ? "AI provider credentials are present in the Cloudflare Worker configuration; a successful run is still required to verify the provider." : providerConfigured === false ? "AI provider is not configured: add AI_API_KEY and AI_MODEL as Cloudflare Worker secrets/variables." : "Checking AI provider configuration…"} External actions, publishing, messages and payments are not enabled.</p>
       <form className="agent-form" onSubmit={runAgent}>
         <label className="field-label">Specialist agent
           <select value={agentKey} onChange={(event) => setAgentKey(event.target.value)}>
