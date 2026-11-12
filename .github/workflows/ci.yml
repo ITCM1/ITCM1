@@ -32,7 +32,7 @@ jobs:
           for migration in sorted(pathlib.Path("migrations").glob("*.sql")):
               database.executescript(migration.read_text(encoding="utf-8"))
 
-          expected = {"tasks", "projects", "agent_runs", "approvals", "audit_events"}
+          expected = {"tasks", "projects", "agent_runs", "approvals", "audit_events", "agent_queue"}
           actual = {
               row[0]
               for row in database.execute(
