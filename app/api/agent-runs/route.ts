@@ -5,9 +5,8 @@ import { writeAuditEvent } from "@/lib/audit";
 import { executeAgentObjective } from "@/lib/agent-executor";
 import { isOwnerAuthenticated } from "@/lib/owner-session";
 
-export const runtime = "edge";
-export const maxDuration = 50;
-
+// Keep this route on the default Node.js runtime. OpenNext Cloudflare bundles
+// Node.js routes into the main Worker; Edge routes require a separate function.
 const runInput = z.object({
   agentKey: z.string().trim().min(1).max(80),
   objective: z.string().trim().min(1).max(4000),
@@ -42,8 +41,8 @@ export async function POST(request: NextRequest) {
 
   try {
     await db.prepare(
-      "INSERT INTO agent_runs (id, task_id, project_id, agent_key, objective, status, input_summary, created_at) VALUES (?, ?, ?, ?, ?, 'running', ?, ?)"
-    ).bind(id, input.taskId ?? null, input.projectId ?? null, input.agentKey, input.objective, input.objective.slice(0, 500), createdAt).run();
+      "INSERT INTO agent_runs (id, task_id, project_id, agent_key, objective, status, input_summary, created_at, started_at) VALUES (?, ?, ?, ?, ?, 'running', ?, ?, ?)"
+    ).bind(id, input.taskId ?? null, input.projectId ?? null, input.agentKey, input.objective, input.objective.slice(0, 500), createdAt, createdAt).run();
 
     await writeAuditEvent(db, {
       actorType: "owner",
@@ -80,6 +79,7 @@ export async function POST(request: NextRequest) {
         model: result.model,
         output: result.output,
         createdAt,
+        startedAt: createdAt,
         finishedAt
       }
     }, { status: 200 });
