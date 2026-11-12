@@ -205,6 +205,7 @@ export default function HomePage() {
         <a className="nav-item active" href="#overview">Overview</a>
         <a className="nav-item" href="#tasks">Task center</a>
         <a className="nav-item" href="#create-task">Create task</a>
+        <a className="nav-item" href="#agents">AI Agents</a>
         <a className="nav-item" href="#integrations">Integrations</a>
         <div className="sidebar-bottom">
           <div className="owner-avatar">TB</div>
@@ -282,7 +283,7 @@ export default function HomePage() {
 
         <section className="notice" id="integrations">
           <div className="notice-icon">!</div>
-          <div><strong>Integration status</strong><p>Owner authentication and persistent task endpoints are implemented. Cloudflare D1 must be created, bound as DB, and initialized with migrations/0001_tasks.sql. AI agents, Telegram task execution, email, WhatsApp and payments remain separate integration work and are not represented as active.</p></div>
+          <div><strong>Integration status</strong><p>Owner authentication, persistent tasks, and an AI agent execution console are implemented. Configure Cloudflare D1 and migrations/0001_tasks.sql plus migrations/0002_orchestration.sql. AI execution requires AI_API_KEY and AI_MODEL Worker secrets. Telegram, email, WhatsApp and payment integrations are not yet connected.</p></div>
         </section>
 
         <footer>ITCM GLOBAL AI <span>·</span> Owner workspace <span>·</span> Secure task foundation</footer>
