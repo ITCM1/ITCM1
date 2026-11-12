@@ -27,9 +27,19 @@ export async function POST(request: NextRequest) {
   const leaseUntil = new Date(now.getTime() + 90_000).toISOString();
 
   try {
-    // Atomic lease: only one dispatcher can claim a given due row.
+    // A worker may die on its final permitted attempt. Close that expired lease
+    // instead of allowing another claim to exceed max_attempts.
+    await db.prepare(
+      "UPDATE agent_runs SET status = 'failed', error_code = 'QUEUE_LEASE_EXPIRED', output_summary = 'Worker lease expired on the final attempt.', finished_at = ? WHERE id IN (SELECT agent_run_id FROM agent_queue WHERE status = 'running' AND locked_until <= ? AND attempt_count >= max_attempts)"
+    ).bind(nowIso, nowIso).run();
+    await db.prepare(
+      "UPDATE agent_queue SET status = 'failed', locked_until = NULL, last_error = 'Worker lease expired on the final attempt.', updated_at = ? WHERE status = 'running' AND locked_until <= ? AND attempt_count >= max_attempts"
+    ).bind(nowIso, nowIso).run();
+
+    // Atomic lease: only one dispatcher can claim a due row, and retries never
+    // exceed the configured attempt limit.
     const item = await db.prepare(
-      "UPDATE agent_queue SET status = 'running', attempt_count = attempt_count + 1, locked_until = ?, updated_at = ? WHERE id = (SELECT id FROM agent_queue WHERE (status = 'queued' AND available_at <= ?) OR (status = 'running' AND locked_until <= ?) ORDER BY available_at ASC, created_at ASC LIMIT 1) RETURNING id, agent_run_id, agent_key, objective, attempt_count, max_attempts"
+      "UPDATE agent_queue SET status = 'running', attempt_count = attempt_count + 1, locked_until = ?, updated_at = ? WHERE id = (SELECT id FROM agent_queue WHERE ((status = 'queued' AND available_at <= ?) OR (status = 'running' AND locked_until <= ?)) AND attempt_count < max_attempts ORDER BY available_at ASC, created_at ASC LIMIT 1) RETURNING id, agent_run_id, agent_key, objective, attempt_count, max_attempts"
     ).bind(leaseUntil, nowIso, nowIso, nowIso).first<QueueItem>();
 
     if (!item) return NextResponse.json({ processed: false, reason: "queue_empty" });
