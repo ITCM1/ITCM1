@@ -7,8 +7,17 @@ import { isOwnerAuthenticated } from "@/lib/owner-session";
 
 // Keep this route on the default Node.js runtime. OpenNext Cloudflare bundles
 // Node.js routes into the main Worker; Edge routes require a separate function.
+const supportedAgentKeys = [
+  "master-orchestrator",
+  "sales-manager",
+  "marketing-manager",
+  "market-research",
+  "operations-manager",
+  "finance-analyst"
+] as const;
+
 const runInput = z.object({
-  agentKey: z.string().trim().min(1).max(80),
+  agentKey: z.enum(supportedAgentKeys),
   objective: z.string().trim().min(1).max(4000),
   taskId: z.string().uuid().optional().nullable(),
   projectId: z.string().uuid().optional().nullable()
