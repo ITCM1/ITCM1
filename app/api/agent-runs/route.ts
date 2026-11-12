@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getDatabase } from "@/lib/cloudflare";
 import { writeAuditEvent } from "@/lib/audit";
-import { executeAgentObjective } from "@/lib/agent-executor";
+import { executeAgentObjective, isAgentProviderConfigured } from "@/lib/agent-executor";
 import { isOwnerAuthenticated } from "@/lib/owner-session";
 
 // Keep this route on the default Node.js runtime. OpenNext Cloudflare bundles
@@ -22,7 +22,7 @@ export async function GET() {
     const result = await db.prepare(
       "SELECT id, task_id AS taskId, project_id AS projectId, agent_key AS agentKey, objective, status, provider, model, input_summary AS inputSummary, output_summary AS outputSummary, error_code AS errorCode, created_at AS createdAt, started_at AS startedAt, finished_at AS finishedAt FROM agent_runs ORDER BY created_at DESC LIMIT 100"
     ).bind().all();
-    return NextResponse.json({ runs: result.results ?? [] });
+    return NextResponse.json({ runs: result.results ?? [], providerConfigured: await isAgentProviderConfigured() });
   } catch {
     return NextResponse.json({ error: "Agent runs table unavailable. Apply migrations/0002_orchestration.sql." }, { status: 503 });
   }
