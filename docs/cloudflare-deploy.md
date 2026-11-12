@@ -15,7 +15,7 @@ The repository uses the OpenNext Cloudflare adapter. A successful GitHub build d
 1. Use the D1 database named `tcm-global-ai` already declared in `wrangler.jsonc` (database ID `79575ae5-2083-4eb5-987f-ffd9079280ec`). Do not create a second database unless you also update the Worker binding and migration target.
 2. In Workers & Pages > `itcm1` > Settings > Bindings, add a D1 binding:
    - Variable name: `DB`
-   - Database: `itcm-global-ai`
+   - Database: `tcm-global-ai`
 3. Confirm `wrangler.jsonc` contains the real database ID and `DB` binding.
 4. Apply all migrations:
    ```bash
@@ -32,8 +32,9 @@ In Worker > Settings > Variables and Secrets, configure the following. Do not pu
 - `SESSION_SECRET`: random secret with at least 32 bytes of entropy.
 - `AI_API_KEY`: API key for the chosen OpenAI-compatible provider.
 - `AI_MODEL`: model identifier supported by that provider.
-- `AI_BASE_URL`: optional API base URL; defaults to `https://api.openai.com/v1`.\n- `AGENT_QUEUE_SECRET`: strong random secret used only by the scheduled queue dispatcher; configure the same value as the GitHub Actions repository secret.
-- `AGENT_QUEUE_SECRET`: strong random secret; set it both as an encrypted Worker secret and as a GitHub Actions repository secret with the same value.\n- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, and `TELEGRAM_OWNER_USER_IDS`: required only for Telegram bot operation.
+- `AI_BASE_URL`: optional API base URL; defaults to `https://api.openai.com/v1`.
+- `AGENT_QUEUE_SECRET`: strong random secret; set it both as an encrypted Worker secret and as a GitHub Actions repository secret with the same value.
+- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, and `TELEGRAM_OWNER_USER_IDS`: required only for Telegram bot operation.
 
 The agent executor uses the OpenAI-compatible `/chat/completions` endpoint. Agent runs are first stored as queued records in D1. The scheduled GitHub Actions workflow calls the protected `/api/agent-queue/dispatch` endpoint every five minutes and processes at most one run per invocation. Failed runs are retried up to three attempts with increasing delays; abandoned running leases can be reclaimed after 90 seconds. It produces analysis, plans, drafts, and recommendations only. It has no tools for sending messages, publishing content, executing shell commands, or making payments. Missing AI configuration produces an explicit `AI_PROVIDER_NOT_CONFIGURED` failure rather than a fake success.
 
