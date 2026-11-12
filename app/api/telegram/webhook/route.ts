@@ -64,14 +64,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (text === "/status") {
-      const [db, aiProvider, aiKey] = await Promise.all([
-        getDatabase(), getRuntimeEnv("AI_PROVIDER"), getRuntimeEnv("AI_API_KEY")
+      const [db, aiKey, aiModel] = await Promise.all([
+        getDatabase(), getRuntimeEnv("AI_API_KEY"), getRuntimeEnv("AI_MODEL")
       ]);
       await sendTelegramMessage(chatId, [
         "ITCM GLOBAL AI — الحالة",
         "Telegram webhook: active",
         `Database binding: ${db ? "detected" : "not configured"}`,
-        `AI provider credentials: ${aiProvider && aiKey ? "configured (execution adapter pending)" : "not configured"}`,
+        `AI provider credentials: ${aiKey && aiModel ? "configured" : "not configured"}`,
         "Owner verification: active"
       ].join("\n"));
       return NextResponse.json({ ok: true, command: "status" });
