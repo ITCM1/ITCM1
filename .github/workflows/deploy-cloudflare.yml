@@ -58,10 +58,8 @@ jobs:
           TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
         run: |
           set -euo pipefail
-          if [ -z "$AGENT_QUEUE_SECRET" ]; then
-            echo "::error::GitHub Actions secret AGENT_QUEUE_SECRET is missing; refusing to deploy a queue that cannot be authenticated."
-            exit 1
-          fi
+          # Empty GitHub secret values are skipped below, preserving any
+          # already-configured Cloudflare Worker secrets. Never print secret values.
           put_secret() {
             local name="$1"
             local value="$2"
