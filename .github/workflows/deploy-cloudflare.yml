@@ -34,11 +34,6 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-      # The existing remote D1 schema has already been verified (tasks, projects,
-      # agent_runs, approvals, audit_events, agent_queue). Do not block Worker
-      # deployment on a D1 API permission that is not needed for this release.
-      # Apply future schema changes through a separately authorized migration run.
-
       - name: Sync runtime secrets to Worker
         shell: bash
         env:
@@ -58,8 +53,6 @@ jobs:
           TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
         run: |
           set -euo pipefail
-          # Empty GitHub secret values are skipped below, preserving any
-          # already-configured Cloudflare Worker secrets. Never print secret values.
           put_secret() {
             local name="$1"
             local value="$2"
@@ -98,12 +91,14 @@ jobs:
           import json
           with open("health.json", encoding="utf-8") as f:
               health = json.load(f)
+          integrations = health.get("integrations", {})
           print(json.dumps({
               "status": health.get("status"),
-              "database": health.get("integrations", {}).get("database"),
-              "owner_auth": health.get("integrations", {}).get("owner_auth"),
-              "ai_provider": health.get("integrations", {}).get("ai_provider"),
-              "agent_queue_dispatch": health.get("integrations", {}).get("agent_queue_dispatch")
+              "database": integrations.get("database"),
+              "owner_auth": integrations.get("owner_auth"),
+              "ai_provider": integrations.get("ai_provider"),
+              "ai_providers": integrations.get("ai_providers"),
+              "agent_queue_dispatch": integrations.get("agent_queue_dispatch")
           }, indent=2))
           if health.get("status") != "ok":
               raise SystemExit("Worker health check failed.")
