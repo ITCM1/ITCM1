@@ -5,10 +5,26 @@ import { getRuntimeEnv } from "@/lib/runtime-env";
 const requiredTables = ["tasks", "projects", "agent_runs", "approvals", "audit_events", "agent_queue"] as const;
 
 export async function GET() {
-  const [database, telegramToken, telegramSecret, aiKey, aiModel, ownerPassword, sessionSecret, queueSecret] = await Promise.all([
+  const [
+    database, telegramToken, telegramSecret, legacyAiKey, legacyAiModel,
+    openAiKey, openAiModel, anthropicKey, anthropicModel, aiProvider,
+    ownerPassword, sessionSecret, queueSecret
+  ] = await Promise.all([
     getDatabase(), getRuntimeEnv("TELEGRAM_BOT_TOKEN"), getRuntimeEnv("TELEGRAM_WEBHOOK_SECRET"),
-    getRuntimeEnv("AI_API_KEY"), getRuntimeEnv("AI_MODEL"), getRuntimeEnv("OWNER_LOGIN_PASSWORD"), getRuntimeEnv("SESSION_SECRET"), getRuntimeEnv("AGENT_QUEUE_SECRET")
+    getRuntimeEnv("AI_API_KEY"), getRuntimeEnv("AI_MODEL"),
+    getRuntimeEnv("OPENAI_API_KEY"), getRuntimeEnv("OPENAI_MODEL"),
+    getRuntimeEnv("ANTHROPIC_API_KEY"), getRuntimeEnv("ANTHROPIC_MODEL"), getRuntimeEnv("AI_PROVIDER"),
+    getRuntimeEnv("OWNER_LOGIN_PASSWORD"), getRuntimeEnv("SESSION_SECRET"), getRuntimeEnv("AGENT_QUEUE_SECRET")
   ]);
+
+  const selectedProvider = aiProvider?.trim().toLowerCase();
+  const openAiReady = Boolean((openAiKey || legacyAiKey) && (openAiModel || legacyAiModel));
+  const anthropicReady = Boolean(anthropicKey && (anthropicModel || legacyAiModel));
+  const aiReady = selectedProvider === "openai"
+    ? openAiReady
+    : selectedProvider === "anthropic"
+      ? anthropicReady
+      : openAiReady || anthropicReady;
 
   let schema: Record<string, boolean> = Object.fromEntries(requiredTables.map((table) => [table, false]));
   let databaseStatus: "not_configured" | "unavailable" | "schema_incomplete" | "ready" = "not_configured";
@@ -33,7 +49,11 @@ export async function GET() {
     integrations: {
       telegram: telegramToken && telegramSecret ? "configured" : "not_configured",
       database: databaseStatus,
-      ai_provider: aiKey && aiModel ? "configured" : "not_configured",
+      ai_provider: aiReady ? "configured" : "not_configured",
+      ai_providers: {
+        openai: openAiReady ? "configured" : "not_configured",
+        anthropic: anthropicReady ? "configured" : "not_configured"
+      },
       owner_auth: ownerPassword && sessionSecret ? "configured" : "not_configured",
       agent_queue_dispatch: queueSecret ? "configured" : "not_configured"
     },
