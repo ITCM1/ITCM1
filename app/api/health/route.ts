@@ -55,6 +55,10 @@ export async function GET() {
         anthropic: anthropicReady ? "configured" : "not_configured"
       },
       owner_auth: ownerPassword && sessionSecret ? "configured" : "not_configured",
+      owner_auth_parts: {
+        owner_login_password: Boolean(ownerPassword),
+        session_secret: Boolean(sessionSecret)
+      },
       agent_queue_dispatch: queueSecret ? "configured" : "not_configured"
     },
     database_schema: schema,
