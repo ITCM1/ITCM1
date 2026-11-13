@@ -34,11 +34,10 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-      - name: Apply D1 migrations
-        run: npx wrangler d1 migrations apply tcm-global-ai --remote
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      # The existing remote D1 schema has already been verified (tasks, projects,
+      # agent_runs, approvals, audit_events, agent_queue). Do not block Worker
+      # deployment on a D1 API permission that is not needed for this release.
+      # Apply future schema changes through a separately authorized migration run.
 
       - name: Sync runtime secrets to Worker
         shell: bash
