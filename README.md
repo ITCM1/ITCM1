@@ -12,7 +12,7 @@ ITCM GLOBAL AI is a secure business operations platform in active development. T
 - Owner password login with signed, expiring, HttpOnly session cookies.
 - Owner-authenticated task API: create, list, update, and delete.
 - Cloudflare D1 schema for tasks, projects, agent runs, approvals, audit events, and a durable agent queue.
-- Owner-authenticated agent-run API that enqueues work in D1; an authenticated dispatcher claims jobs, executes the OpenAI-compatible chat-completions request, and records outcomes.
+- Owner-authenticated agent-run API that enqueues work in D1; an authenticated dispatcher claims jobs, executes the configured AI chat-completions request, and records outcomes.
 - Agent execution records success/failure, provider/model, output, and audit events in D1.
 - Agent runs are limited to analysis, plans, drafts, and recommendations; they cannot perform external actions or move money.
 - Telegram owner verification and D1-backed task commands.
@@ -23,7 +23,7 @@ ITCM GLOBAL AI is a secure business operations platform in active development. T
 - Cloudflare D1 database bound to the Worker as `DB`.
 - Apply migrations `0001_tasks.sql`, `0002_orchestration.sql`, and `0003_agent_queue.sql`.
 - Worker secrets `OWNER_LOGIN_PASSWORD`, `SESSION_SECRET`, and `AGENT_QUEUE_SECRET`.
-- To enable AI agent execution, configure `AI_API_KEY` and `AI_MODEL`; optionally set `AI_BASE_URL` for an OpenAI-compatible provider. The default base URL is `https://api.openai.com/v1`.
+- To enable OpenAI agent execution, configure `OPENAI_API_KEY` and `OPENAI_MODEL` as GitHub Actions repository secrets; the deploy workflow syncs supplied values to the Cloudflare Worker. Anthropic can be configured with `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL`.
 - Add the same `AGENT_QUEUE_SECRET` value as a GitHub Actions repository secret so the scheduled queue workflow can call the protected dispatcher.
 - Telegram secrets and owner allowlist must be configured for Telegram operations.
 
@@ -34,7 +34,6 @@ See [Cloudflare deployment and setup](docs/cloudflare-deploy.md). Without requir
 - Multi-agent delegation, cancellation, and high-throughput queue processing. The scheduled dispatcher currently processes at most one job every five minutes.
 - Email and WhatsApp delivery.
 - Stripe, Paddle, marketplace, and other payment integrations.
-- Production Cloudflare deployment verification.
 
 ## Security principles
 
@@ -46,4 +45,4 @@ See [Cloudflare deployment and setup](docs/cloudflare-deploy.md). Without requir
 
 ## Validation
 
-GitHub Actions validates code quality and production builds. It does not prove Cloudflare credentials, D1 provisioning, Telegram webhook registration, AI-provider credentials, or live production deployment.
+GitHub Actions validates code quality, production builds, and the configured Cloudflare deployment health endpoint. A healthy endpoint alone does not prove owner login, AI credentials, Telegram, or external integrations are fully configured.
