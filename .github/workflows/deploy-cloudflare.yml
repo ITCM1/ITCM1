@@ -1,6 +1,8 @@
 name: Deploy to Cloudflare
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -13,6 +15,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,8 +40,74 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
+      - name: Sync runtime secrets to Worker
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          AGENT_QUEUE_SECRET: ${{ secrets.AGENT_QUEUE_SECRET }}
+          OWNER_LOGIN_PASSWORD: ${{ secrets.OWNER_LOGIN_PASSWORD }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_MODEL: ${{ secrets.ANTHROPIC_MODEL }}
+          AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_MODEL: ${{ secrets.AI_MODEL }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "$AGENT_QUEUE_SECRET" ]; then
+            echo "::error::GitHub Actions secret AGENT_QUEUE_SECRET is missing; refusing to deploy a queue that cannot be authenticated."
+            exit 1
+          fi
+          put_secret() {
+            local name="$1"
+            local value="$2"
+            if [ -n "$value" ]; then
+              printf '%s' "$value" | npx wrangler secret put "$name" --name itcm1
+              echo "Synced Worker secret: $name"
+            else
+              echo "Not supplied; leaving existing Worker value unchanged: $name"
+            fi
+          }
+          put_secret AGENT_QUEUE_SECRET "$AGENT_QUEUE_SECRET"
+          put_secret OWNER_LOGIN_PASSWORD "$OWNER_LOGIN_PASSWORD"
+          put_secret SESSION_SECRET "$SESSION_SECRET"
+          put_secret OPENAI_API_KEY "$OPENAI_API_KEY"
+          put_secret OPENAI_MODEL "$OPENAI_MODEL"
+          put_secret ANTHROPIC_API_KEY "$ANTHROPIC_API_KEY"
+          put_secret ANTHROPIC_MODEL "$ANTHROPIC_MODEL"
+          put_secret AI_PROVIDER "$AI_PROVIDER"
+          put_secret AI_API_KEY "$AI_API_KEY"
+          put_secret AI_MODEL "$AI_MODEL"
+          put_secret TELEGRAM_BOT_TOKEN "$TELEGRAM_BOT_TOKEN"
+          put_secret TELEGRAM_WEBHOOK_SECRET "$TELEGRAM_WEBHOOK_SECRET"
+
       - name: Deploy Worker
         run: npx wrangler deploy
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Verify live health endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error https://itcm1.ufstwold.workers.dev/api/health -o health.json
+          python3 - <<'PY'
+          import json
+          with open("health.json", encoding="utf-8") as f:
+              health = json.load(f)
+          print(json.dumps({
+              "status": health.get("status"),
+              "database": health.get("integrations", {}).get("database"),
+              "owner_auth": health.get("integrations", {}).get("owner_auth"),
+              "ai_provider": health.get("integrations", {}).get("ai_provider"),
+              "agent_queue_dispatch": health.get("integrations", {}).get("agent_queue_dispatch")
+          }, indent=2))
+          if health.get("status") != "ok":
+              raise SystemExit("Worker health check failed.")
+          PY
