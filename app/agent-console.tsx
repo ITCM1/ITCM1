@@ -55,7 +55,11 @@ export default function AgentConsole() {
     }
   }, []);
 
-  useEffect(() => { void loadRuns(); }, [loadRuns]);
+  useEffect(() => {
+    void loadRuns();
+    const refreshTimer = window.setInterval(() => { void loadRuns(); }, 10000);
+    return () => window.clearInterval(refreshTimer);
+  }, [loadRuns]);
 
   async function runAgent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -74,7 +78,9 @@ export default function AgentConsole() {
         run?: { output?: string; status?: string; errorCode?: string };
       };
       if (!response.ok) throw new Error(body.error ?? `Agent request failed (${response.status})`);
-      setLatestOutput(body.run?.output ?? "The agent completed without returning displayable text.");
+      setLatestOutput(body.run?.status === "queued"
+        ? "Your request is safely queued. This page refreshes automatically while the agent is working; the result will appear here when execution finishes."
+        : body.run?.output ?? "The request was accepted, but no response text was returned yet.");
       setObjective("");
       await loadRuns();
     } catch (e) {
