@@ -97,7 +97,7 @@ export default function AgentConsole() {
         <div><span className="eyebrow">AI OPERATIONS</span><h2>AI Agent Console</h2></div>
         <button className="secondary-button" type="button" onClick={() => void loadRuns()} disabled={loading}>{loading ? "Refreshing…" : "Refresh runs"}</button>
       </div>
-      <p className="agent-description">Send a real analysis or planning request to the selected AI agent. {providerConfigured === true ? "AI provider credentials are present in the Cloudflare Worker configuration; a successful run is still required to verify the provider." : providerConfigured === false ? "AI provider is not configured: add AI_API_KEY and AI_MODEL as Cloudflare Worker secrets/variables." : "Checking AI provider configuration…"} External actions, publishing, messages and payments are not enabled.</p>
+      <p className="agent-description">Send a real analysis or planning request to the selected AI agent. {providerConfigured === true ? "AI provider credentials are present in the Cloudflare Worker configuration; a successful run is still required to verify the provider." : providerConfigured === false ? "AI provider is not configured. Check the Worker AI_API_KEY and AI_MODEL settings; the execution history will show the exact failure code." : "Checking AI provider configuration…"} External actions, publishing, messages and payments are not enabled.</p>
       <form className="agent-form" onSubmit={runAgent}>
         <label className="field-label">Specialist agent
           <select value={agentKey} onChange={(event) => setAgentKey(event.target.value)}>
@@ -113,12 +113,13 @@ export default function AgentConsole() {
       {latestOutput && <article className="agent-output"><strong>Latest agent response</strong><pre>{latestOutput}</pre></article>}
       <div className="agent-history">
         <div className="agent-history-heading"><strong>Execution history</strong><span className="muted">{runs.length} recent runs</span></div>
-        {runs.length === 0 ? <p className="empty-state">{loading ? "Loading agent history…" : "No agent runs yet. Configure the AI provider secrets to start."}</p> : runs.map((run) => (
+        {runs.length === 0 ? <p className="empty-state">{loading ? "Loading agent history…" : "No agent runs yet. Submit an analysis request to create the first run."}</p> : runs.map((run) => (
           <article className="agent-run-row" key={run.id}>
             <div className="agent-run-main">
               <strong>{agentOptions.find(([key]) => key === run.agentKey)?.[1] ?? run.agentKey}</strong>
               <p>{run.objective}</p>
-              {run.outputSummary && <details><summary>View agent response</summary><pre>{run.outputSummary}</pre></details>}
+              {run.errorCode && <p className="agent-error-code" role="alert">Error code: <strong>{run.errorCode}</strong></p>}
+              {run.outputSummary && <details open={run.status === "failed"}><summary>View agent response</summary><pre>{run.outputSummary}</pre></details>}
               <small>{new Date(run.createdAt).toLocaleString()} {run.model ? `· ${run.model}` : ""}</small>
             </div>
             <span className={`agent-status status-${run.status}`}>{run.status}</span>
