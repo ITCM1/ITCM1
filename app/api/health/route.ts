@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getDatabase } from "@/lib/cloudflare";
 import { getRuntimeEnv } from "@/lib/runtime-env";
 
@@ -16,6 +17,14 @@ export async function GET() {
     getRuntimeEnv("ANTHROPIC_API_KEY"), getRuntimeEnv("ANTHROPIC_MODEL"), getRuntimeEnv("AI_PROVIDER"),
     getRuntimeEnv("OWNER_LOGIN_PASSWORD"), getRuntimeEnv("SESSION_SECRET"), getRuntimeEnv("AGENT_QUEUE_SECRET")
   ]);
+
+  let runtimeBindingNames: string[] = [];
+  try {
+    const context = await getCloudflareContext({ async: true });
+    runtimeBindingNames = Object.keys(context.env as unknown as Record<string, unknown>).sort();
+  } catch {
+    runtimeBindingNames = ["cloudflare_context_unavailable"];
+  }
 
   const selectedProvider = aiProvider?.trim().toLowerCase();
   const openAiReady = Boolean((openAiKey || legacyAiKey) && (openAiModel || legacyAiModel));
@@ -61,6 +70,7 @@ export async function GET() {
       },
       agent_queue_dispatch: queueSecret ? "configured" : "not_configured"
     },
+    runtime_binding_names: runtimeBindingNames,
     database_schema: schema,
     timestamp: new Date().toISOString()
   });
