@@ -74,7 +74,7 @@ export async function executeAgentObjective(input: {
   let response: Response;
 
   if (provider === "anthropic") {
-    const baseUrl = (env.ANTHROPIC_BASE_URL?.trim() || "https://api.anthropic.com").replace(/\\/$/, "");
+    const baseUrl = (env.ANTHROPIC_BASE_URL?.trim() || "https://api.anthropic.com").replace(/\/$/, "");
     response = await fetch(`${baseUrl}/v1/messages`, {
       method: "POST",
       headers: {
@@ -92,7 +92,7 @@ export async function executeAgentObjective(input: {
       signal: AbortSignal.timeout(45000)
     });
   } else {
-    const baseUrl = (env.AI_BASE_URL?.trim() || "https://api.openai.com/v1").replace(/\\/$/, "");
+    const baseUrl = (env.AI_BASE_URL?.trim() || "https://api.openai.com/v1").replace(/\/$/, "");
     response = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
@@ -124,7 +124,7 @@ export async function executeAgentObjective(input: {
       content?: Array<{ type?: string; text?: string }>;
     };
     responseModel = payload.model || model;
-    output = payload.content?.filter((part) => part.type === "text").map((part) => part.text || "").join("\\n").trim() || "";
+    output = payload.content?.filter((part) => part.type === "text").map((part) => part.text || "").join("\n").trim() || "";
   } else {
     const payload = await response.json() as {
       model?: string;
