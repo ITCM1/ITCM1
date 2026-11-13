@@ -1,0 +1,34 @@
+name: Process agent queue
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: itcm-agent-queue-pump
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch one queued agent run
+        env:
+          AGENT_QUEUE_SECRET: ${{ secrets.AGENT_QUEUE_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "$AGENT_QUEUE_SECRET" ]; then
+            echo "::error::AGENT_QUEUE_SECRET is not available to this workflow."
+            exit 1
+          fi
+          response="$(curl --fail --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer $AGENT_QUEUE_SECRET" \
+            -H "Content-Type: application/json" \
+            https://itcm1.ufstwold.workers.dev/api/agent-queue/dispatch)"
+          printf '%s\n' "$response" | jq .
