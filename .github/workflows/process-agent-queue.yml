@@ -26,9 +26,26 @@ jobs:
             echo "::error::AGENT_QUEUE_SECRET is not available to this workflow."
             exit 1
           fi
-          response="$(curl --fail --silent --show-error \
+
+          http_code="$(curl --silent --show-error \
+            --output response.txt \
+            --write-out '%{http_code}' \
             -X POST \
             -H "Authorization: Bearer $AGENT_QUEUE_SECRET" \
             -H "Content-Type: application/json" \
-            https://itcm1.ufstwold.workers.dev/api/agent-queue/dispatch)"
-          printf '%s\n' "$response" | jq .
+            https://itcm1.ufstwold.workers.dev/api/agent-queue/dispatch)" || {
+              echo "::error::Could not reach the Cloudflare dispatch endpoint."
+              exit 1
+            }
+
+          echo "Cloudflare HTTP status: $http_code"
+          echo "Cloudflare response:"
+          cat response.txt
+          echo
+
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "::error::Agent queue dispatch returned HTTP $http_code."
+            exit 1
+          fi
+
+          jq . response.txt
