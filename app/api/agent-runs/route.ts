@@ -54,11 +54,13 @@ export async function POST(request: NextRequest) {
   const queueId = crypto.randomUUID();
   const createdAt = new Date().toISOString();
 
+  let enqueueStage = "agent_run_insert";
   try {
     await db.prepare(
       "INSERT INTO agent_runs (id, task_id, project_id, agent_key, objective, status, input_summary, created_at) VALUES (?, ?, ?, ?, ?, 'queued', ?, ?)"
     ).bind(id, input.taskId ?? null, input.projectId ?? null, input.agentKey, input.objective, input.objective.slice(0, 500), createdAt).run();
 
+    enqueueStage = "agent_queue_insert";
     await db.prepare(
       "INSERT INTO agent_queue (id, agent_run_id, agent_key, objective, status, attempt_count, max_attempts, available_at, created_at, updated_at) VALUES (?, ?, ?, ?, 'queued', 0, 3, ?, ?, ?)"
     ).bind(queueId, id, input.agentKey, input.objective, createdAt, createdAt, createdAt).run();
@@ -77,10 +79,19 @@ export async function POST(request: NextRequest) {
       run: { id, ...input, status: "queued", createdAt },
       message: "Agent run accepted into the durable queue."
     }, { status: 202 });
-  } catch {
+  } catch (error) {
+    const detail = (error instanceof Error ? error.message : String(error)).slice(0, 700);
+    const errorCode = enqueueStage === "agent_queue_insert"
+      ? "QUEUE_ROW_INSERT_FAILED"
+      : "AGENT_RUN_INSERT_FAILED";
     await db.prepare(
-      "UPDATE agent_runs SET status = 'failed', error_code = 'QUEUE_ENQUEUE_FAILED', finished_at = ? WHERE id = ?"
-    ).bind(new Date().toISOString(), id).run().catch(() => undefined);
-    return NextResponse.json({ error: "Could not enqueue the agent run. Check that migration 0003_agent_queue.sql is applied." }, { status: 503 });
+      "UPDATE agent_runs SET status = 'failed', error_code = ?, output_summary = ?, finished_at = ? WHERE id = ?"
+    ).bind(errorCode, `${enqueueStage}: ${detail}`, new Date().toISOString(), id).run().catch(() => undefined);
+    return NextResponse.json({
+      error: "Could not enqueue the agent run.",
+      errorCode,
+      stage: enqueueStage,
+      detail
+    }, { status: 503 });
   }
 }
