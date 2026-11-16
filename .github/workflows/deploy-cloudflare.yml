@@ -46,9 +46,6 @@ jobs:
           OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ANTHROPIC_MODEL: ${{ secrets.ANTHROPIC_MODEL }}
-          AI_PROVIDER: cloudflare
-          AI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          AI_MODEL: "@cf/google/gemma-4-26b-a4b-it"
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
         run: |
@@ -70,9 +67,6 @@ jobs:
           put_secret OPENAI_MODEL "$OPENAI_MODEL"
           put_secret ANTHROPIC_API_KEY "$ANTHROPIC_API_KEY"
           put_secret ANTHROPIC_MODEL "$ANTHROPIC_MODEL"
-          put_secret AI_PROVIDER "$AI_PROVIDER"
-          put_secret AI_API_KEY "$AI_API_KEY"
-          put_secret AI_MODEL "$AI_MODEL"
           put_secret TELEGRAM_BOT_TOKEN "$TELEGRAM_BOT_TOKEN"
           put_secret TELEGRAM_WEBHOOK_SECRET "$TELEGRAM_WEBHOOK_SECRET"
 
