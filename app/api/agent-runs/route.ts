@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
   if (!(await isOwnerAuthenticated())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const db = await getDatabase();
   if (!db) return NextResponse.json({ error: "D1 database is not configured." }, { status: 503 });
+  await triggerQueueDispatch(request);
   try {
     const result = await db.prepare(
       "SELECT id, task_id AS taskId, project_id AS projectId, agent_key AS agentKey, objective, status, provider, model, input_summary AS inputSummary, output_summary AS outputSummary, error_code AS errorCode, created_at AS createdAt, started_at AS startedAt, finished_at AS finishedAt FROM agent_runs ORDER BY created_at DESC LIMIT 100"
@@ -92,6 +93,7 @@ export async function POST(request: NextRequest) {
       details: { agentKey: input.agentKey, queueId, projectId: input.projectId ?? null, taskId: input.taskId ?? null }
     });
 
+    await triggerQueueDispatch(request);
     return NextResponse.json({
       run: { id, ...input, status: "queued", createdAt },
       message: "Agent run accepted into the durable queue."
