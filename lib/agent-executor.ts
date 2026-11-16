@@ -34,11 +34,11 @@ const systemPrompt = [
 ].join(" ");
 
 function resolveProvider(env: AgentEnvironment): "cloudflare" | "openai" | "anthropic" | null {
+  // Prefer the bound Cloudflare AI runtime when available; it needs no API key.
+  if (env.AI) return "cloudflare";
   const selected = env.AI_PROVIDER?.trim().toLowerCase();
-  if (selected === "cloudflare" && env.AI) return "cloudflare";
   if (selected === "openai") return "openai";
   if (selected === "anthropic") return "anthropic";
-  if (env.AI) return "cloudflare";
   if (env.OPENAI_API_KEY?.trim() || env.AI_API_KEY?.trim()) return "openai";
   if (env.ANTHROPIC_API_KEY?.trim()) return "anthropic";
   return null;
