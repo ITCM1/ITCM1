@@ -1,9 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { z } from "zod";
 import { getDatabase } from "@/lib/cloudflare";
 import { writeAuditEvent } from "@/lib/audit";
 import { isAgentProviderConfigured } from "@/lib/agent-executor";
 import { isOwnerAuthenticated } from "@/lib/owner-session";
+
+async function triggerQueueDispatch(request: NextRequest) {
+  try {
+    const context = await getCloudflareContext({ async: true });
+    const env = context.env as unknown as { AGENT_QUEUE_SECRET?: string };
+    const secret = env.AGENT_QUEUE_SECRET;
+    if (!secret) return;
+    const dispatchUrl = new URL("/api/agent-queue/dispatch", request.url);
+    context.ctx.waitUntil(fetch(dispatchUrl, {
+      method: "POST",
+      headers: { authorization: `Bearer ${secret}` }
+    }).catch(() => undefined));
+  } catch {
+    // The queue remains durable; a later authenticated poll can trigger dispatch again.
+  }
+}
 
 const supportedAgentKeys = [
   "master-orchestrator",
