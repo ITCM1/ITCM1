@@ -75,12 +75,25 @@ export default function AgentConsole() {
       });
       const body = await response.json().catch(() => ({})) as {
         error?: string;
-        run?: { output?: string; status?: string; errorCode?: string };
+        run?: { outputSummary?: string | null; status?: string; errorCode?: string | null; model?: string | null };
+        dispatch?: { triggered?: boolean; status?: number; result?: { processed?: boolean; status?: string; reason?: string; errorCode?: string }; error?: string };
       };
       if (!response.ok) throw new Error(body.error ?? `Agent request failed (${response.status})`);
-      setLatestOutput(body.run?.status === "queued"
-        ? "Your request is safely queued. This page refreshes automatically while the agent is working; the result will appear here when execution finishes."
-        : body.run?.output ?? "The request was accepted, but no response text was returned yet.");
+      const runStatus = body.run?.status;
+      if (runStatus === "succeeded") {
+        setLatestOutput(body.run?.outputSummary ?? "The agent completed successfully, but returned no text.");
+      } else if (runStatus === "failed") {
+        setLatestOutput(`Agent failed: ${body.run?.errorCode ?? "UNKNOWN_ERROR"}\n${body.run?.outputSummary ?? ""}`);
+      } else {
+        const dispatchInfo = body.dispatch?.error
+          ? `\nDispatcher error: ${body.dispatch.error}`
+          : body.dispatch?.result?.errorCode
+            ? `\nAgent error: ${body.dispatch.result.errorCode}`
+            : body.dispatch?.result?.reason
+              ? `\nDispatcher: ${body.dispatch.result.reason}`
+              : "";
+        setLatestOutput(`Current status: ${runStatus ?? "queued"}. The page refreshes automatically.${dispatchInfo}`);
+      }
       setObjective("");
       await loadRuns();
     } catch (e) {
