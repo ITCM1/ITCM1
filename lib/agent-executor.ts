@@ -1,6 +1,12 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
+type ChatMessage = { role: "system" | "user"; content: string };
+type CloudflareAI = {
+  run(model: string, input: { messages: ChatMessage[] }): Promise<unknown>;
+};
+
 type AgentEnvironment = {
+  AI?: CloudflareAI;
   AI_PROVIDER?: string;
   AI_API_KEY?: string;
   AI_BASE_URL?: string;
@@ -13,7 +19,7 @@ type AgentEnvironment = {
 };
 
 export type AgentExecutionResult = {
-  provider: "openai" | "anthropic";
+  provider: "cloudflare" | "openai" | "anthropic";
   model: string;
   output: string;
 };
@@ -27,15 +33,19 @@ const systemPrompt = [
   "Keep the response structured and directly useful."
 ].join(" ");
 
-function resolveProvider(env: AgentEnvironment): "openai" | "anthropic" | null {
+function resolveProvider(env: AgentEnvironment): "cloudflare" | "openai" | "anthropic" | null {
   const selected = env.AI_PROVIDER?.trim().toLowerCase();
-  if (selected === "openai" || selected === "anthropic") return selected;
+  if (selected === "cloudflare" && env.AI) return "cloudflare";
+  if (selected === "openai") return "openai";
+  if (selected === "anthropic") return "anthropic";
+  if (env.AI) return "cloudflare";
   if (env.OPENAI_API_KEY?.trim() || env.AI_API_KEY?.trim()) return "openai";
   if (env.ANTHROPIC_API_KEY?.trim()) return "anthropic";
   return null;
 }
 
-function resolveModel(env: AgentEnvironment, provider: "openai" | "anthropic"): string {
+function resolveModel(env: AgentEnvironment, provider: "cloudflare" | "openai" | "anthropic"): string {
+  if (provider === "cloudflare") return env.AI_MODEL?.trim() || "@cf/google/gemma-4-26b-a4b-it";
   if (provider === "anthropic") return env.ANTHROPIC_MODEL?.trim() || env.AI_MODEL?.trim() || "";
   return env.OPENAI_MODEL?.trim() || env.AI_MODEL?.trim() || "";
 }
@@ -50,6 +60,7 @@ export async function isAgentProviderConfigured(): Promise<boolean> {
     const context = await getCloudflareContext({ async: true });
     const env = context.env as unknown as AgentEnvironment;
     const provider = resolveProvider(env);
+    if (provider === "cloudflare") return Boolean(env.AI && resolveModel(env, provider));
     return Boolean(provider && resolveKey(env, provider) && resolveModel(env, provider));
   } catch {
     return false;
@@ -66,12 +77,30 @@ export async function executeAgentObjective(input: {
 
   if (!provider) throw new Error("AI_PROVIDER_NOT_CONFIGURED");
 
-  const apiKey = resolveKey(env, provider);
   const model = resolveModel(env, provider);
-  if (!apiKey || !model) throw new Error("AI_PROVIDER_NOT_CONFIGURED");
+  if (!model) throw new Error("AI_PROVIDER_NOT_CONFIGURED");
 
   const userPrompt = `Agent role: ${input.agentKey}\nOwner objective: ${input.objective}`;
-  let response: Response;
+  let response: Response | null = null;
+
+  if (provider === "cloudflare") {
+    if (!env.AI) throw new Error("AI_PROVIDER_NOT_CONFIGURED");
+    const result = await env.AI.run(model, {
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ]
+    }) as {
+      response?: string;
+      choices?: Array<{ message?: { content?: string | null } }>;
+    };
+    const output = result.response?.trim() || result.choices?.[0]?.message?.content?.trim() || "";
+    if (!output) throw new Error("AI_PROVIDER_EMPTY_RESPONSE");
+    return { provider, model, output };
+  }
+
+  const apiKey = resolveKey(env, provider);
+  if (!apiKey) throw new Error("AI_PROVIDER_NOT_CONFIGURED");
 
   if (provider === "anthropic") {
     const baseUrl = (env.ANTHROPIC_BASE_URL?.trim() || "https://api.anthropic.com").replace(/\/$/, "");
