@@ -38,7 +38,7 @@ const runInput = z.object({
   projectId: z.string().uuid().optional().nullable()
 });
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   if (!(await isOwnerAuthenticated())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const db = await getDatabase();
   if (!db) return NextResponse.json({ error: "D1 database is not configured." }, { status: 503 });
