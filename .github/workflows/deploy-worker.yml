@@ -20,16 +20,15 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Check TypeScript
         run: npm run typecheck
@@ -47,14 +46,30 @@ jobs:
       - name: Verify live Worker health
         run: |
           set -euo pipefail
+          health_ok=false
           for attempt in 1 2 3 4 5; do
             code="$(curl -sS -o /tmp/health.json -w '%{http_code}' https://itcm1.ufstwold.workers.dev/api/health || true)"
             if [ "$code" = "200" ]; then
               cat /tmp/health.json
-              exit 0
+              health_ok=true
+              break
             fi
             echo "Health check attempt $attempt returned HTTP $code"
             sleep 5
           done
-          cat /tmp/health.json || true
-          exit 1
+          if [ "$health_ok" != "true" ]; then
+            cat /tmp/health.json || true
+            exit 1
+          fi
+
+      - name: Verify café product page
+        run: |
+          set -euo pipefail
+          code="$(curl -sS -L -o /tmp/product-page.html -w '%{http_code}' https://itcm1.ufstwold.workers.dev/shop/cafe-owner-profit-kit)"
+          if [ "$code" != "200" ]; then
+            echo "Product page returned HTTP $code"
+            head -c 2000 /tmp/product-page.html || true
+            exit 1
+          fi
+          grep -qi "Run your café with" /tmp/product-page.html
+          echo "Product page returned HTTP 200 and expected page content."
