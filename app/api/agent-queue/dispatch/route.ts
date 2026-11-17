@@ -115,6 +115,7 @@ export async function POST(request: NextRequest) {
         status: terminal ? "failed" : "queued",
         attempt: item.attempt_count,
         errorCode: code,
+        errorDetail: message.slice(0, 500),
         retryAt: terminal ? null : retryAt
       });
     }
