@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS agent_queue (
   agent_run_id TEXT NOT NULL UNIQUE,
   agent_key TEXT NOT NULL,
   objective TEXT NOT NULL CHECK (length(objective) BETWEEN 1 AND 4000),
-  status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'succeeded', 'failed')),
+  status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'processing', 'completed', 'failed')),
   attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
   max_attempts INTEGER NOT NULL DEFAULT 3 CHECK (max_attempts BETWEEN 1 AND 5),
   available_at TEXT NOT NULL,
