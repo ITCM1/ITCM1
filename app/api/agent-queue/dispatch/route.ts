@@ -26,24 +26,28 @@ export async function POST(request: NextRequest) {
   const nowIso = now.toISOString();
   const leaseUntil = new Date(now.getTime() + 90_000).toISOString();
 
+  let stage = "expire_final_attempts";
   try {
     // A worker may die on its final permitted attempt. Close that expired lease
     // instead of allowing another claim to exceed max_attempts.
     await db.prepare(
       "UPDATE agent_runs SET status = 'failed', error_code = 'QUEUE_LEASE_EXPIRED', output_summary = 'Worker lease expired on the final attempt.', finished_at = ? WHERE id IN (SELECT agent_run_id FROM agent_queue WHERE status = 'running' AND locked_until <= ? AND attempt_count >= max_attempts)"
     ).bind(nowIso, nowIso).run();
+    stage = "expire_queue_leases";
     await db.prepare(
       "UPDATE agent_queue SET status = 'failed', locked_until = NULL, last_error = 'Worker lease expired on the final attempt.', updated_at = ? WHERE status = 'running' AND locked_until <= ? AND attempt_count >= max_attempts"
     ).bind(nowIso, nowIso).run();
 
     // Atomic lease: only one dispatcher can claim a due row, and retries never
     // exceed the configured attempt limit.
+    stage = "claim_queue_item";
     const item = await db.prepare(
       "UPDATE agent_queue SET status = 'running', attempt_count = attempt_count + 1, locked_until = ?, updated_at = ? WHERE id = (SELECT id FROM agent_queue WHERE ((status = 'queued' AND available_at <= ?) OR (status = 'running' AND locked_until <= ?)) AND attempt_count < max_attempts ORDER BY available_at ASC, created_at ASC LIMIT 1) RETURNING id, agent_run_id, agent_key, objective, attempt_count, max_attempts"
     ).bind(leaseUntil, nowIso, nowIso, nowIso).first<QueueItem>();
 
     if (!item) return NextResponse.json({ processed: false, reason: "queue_empty" });
 
+    stage = "mark_agent_run_running";
     await db.prepare(
       "UPDATE agent_runs SET status = 'running', started_at = ?, error_code = NULL WHERE id = ?"
     ).bind(nowIso, item.agent_run_id).run();
@@ -114,7 +118,8 @@ export async function POST(request: NextRequest) {
         retryAt: terminal ? null : retryAt
       });
     }
-  } catch {
-    return NextResponse.json({ error: "Queue dispatcher failed. Verify migration 0003_agent_queue.sql and D1 binding." }, { status: 503 });
+  } catch (error) {
+    const detail = (error instanceof Error ? error.message : String(error)).slice(0, 700);
+    return NextResponse.json({ error: "Queue dispatcher failed.", stage, detail }, { status: 503 });
   }
 }
