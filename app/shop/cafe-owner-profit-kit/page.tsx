@@ -46,7 +46,7 @@ export default function CafeOwnerProfitKitPage() {
         </section>
 
         <section style={{ borderTop: "1px solid #292b2e", paddingTop: 34 }}>
-          <p style={{ color: "#d7b879", letterSpacing: 2, fontSize: 11 }}>WHAT'S INSIDE</p>
+          <p style={{ color: "#d7b879", letterSpacing: 2, fontSize: 11 }}>WHAT&apos;S INSIDE</p>
           <h2 style={{ fontSize: 30, margin: "8px 0 22px" }}>Four everyday operating tools</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12 }}>
             {features.map(([number, title, description]) => <article key={number} style={{ border: "1px solid #292f38", background: "#10151d", padding: 20, borderRadius: 9 }}>
