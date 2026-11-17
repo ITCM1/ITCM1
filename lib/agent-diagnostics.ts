@@ -53,7 +53,7 @@ export async function loadAgentDiagnosticSnapshot(): Promise<Record<string, unkn
         ? db.prepare("SELECT id, title, department, priority, status, created_at AS createdAt FROM tasks ORDER BY created_at DESC LIMIT 10").bind().all()
         : Promise.resolve({ results: [] }),
       present.has("agent_runs")
-        ? db.prepare("SELECT id, agent_key AS agentKey, objective, status, provider, model, output_summary AS outputSummary, error_code AS errorCode, created_at AS createdAt, finished_at AS finishedAt FROM agent_runs ORDER BY created_at DESC LIMIT 10").bind().all()
+        ? db.prepare("SELECT id, agent_key AS agentKey, substr(objective, 1, 500) AS objective, status, provider, model, substr(output_summary, 1, 800) AS outputSummary, error_code AS errorCode, created_at AS createdAt, finished_at AS finishedAt FROM agent_runs ORDER BY created_at DESC LIMIT 10").bind().all()
         : Promise.resolve({ results: [] }),
       present.has("agent_queue")
         ? db.prepare("SELECT status, COUNT(*) AS count FROM agent_queue GROUP BY status ORDER BY status").bind().all()
