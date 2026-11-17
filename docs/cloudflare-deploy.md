@@ -17,7 +17,7 @@ The repository uses the OpenNext Cloudflare adapter. A successful GitHub build d
    - Variable name: `DB`
    - Database: `tcm-global-ai`
 3. Confirm `wrangler.jsonc` contains the real database ID and `DB` binding.
-4. Apply all migrations:
+4. Apply all migrations, including the digital product catalogue:
    ```bash
    npm run db:migrate:remote
    npm run db:list:remote
@@ -61,5 +61,6 @@ Telegram task commands are limited to the implemented D1-backed operations. They
 
 - The D1-backed queue and retry scheduling are implemented. The GitHub Actions schedule must be enabled and `AGENT_QUEUE_SECRET` configured for automatic dispatch. It processes at most one job per five-minute schedule; this is a basic queue runner, not high-throughput orchestration. Cancellation and multi-agent delegation remain future work.
 - The approval API records owner decisions, but the current text-only AI executor does not initiate external actions requiring approval.
+- The owner dashboard includes a D1-backed digital product catalogue (`/api/digital-products`) after applying `migrations/0004_digital_products.sql`. It records product metadata and preparation status only; it does not publish to marketplaces or accept payments.
 - Email, WhatsApp, payment providers, and marketplace integrations are not connected.
 - CI verifies code and build steps only. Confirm the Worker deployment in Cloudflare and test the live URL before treating the service as production-ready.
