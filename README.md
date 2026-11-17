@@ -11,7 +11,8 @@ ITCM GLOBAL AI is a secure business operations platform in active development. T
 - Next.js + TypeScript owner dashboard.
 - Owner password login with signed, expiring, HttpOnly session cookies.
 - Owner-authenticated task API: create, list, update, and delete.
-- Cloudflare D1 schema for tasks, projects, agent runs, approvals, audit events, and a durable agent queue.
+- Cloudflare D1 schema for tasks, projects, digital products, agent runs, approvals, audit events, and a durable agent queue.
+- Owner-authenticated digital product catalogue with persistent product records, target markets, suggested price/currency, and draft/ready-for-review status.
 - Owner-authenticated agent-run API that enqueues work in D1; an authenticated dispatcher claims jobs, executes the configured AI chat-completions request, and records outcomes.
 - Agent execution records success/failure, provider/model, output, and audit events in D1.
 - Agent runs are limited to analysis, plans, drafts, and recommendations; they cannot perform external actions or move money.
@@ -21,7 +22,7 @@ ITCM GLOBAL AI is a secure business operations platform in active development. T
 ## Required setup
 
 - Cloudflare D1 database bound to the Worker as `DB`.
-- Apply migrations `0001_tasks.sql`, `0002_orchestration.sql`, and `0003_agent_queue.sql`.
+- Apply migrations `0001_tasks.sql`, `0002_orchestration.sql`, `0003_agent_queue.sql`, and `0004_digital_products.sql`.
 - Worker secrets `OWNER_LOGIN_PASSWORD`, `SESSION_SECRET`, and `AGENT_QUEUE_SECRET`.
 - To enable OpenAI agent execution, configure `OPENAI_API_KEY` and `OPENAI_MODEL` as GitHub Actions repository secrets; the deploy workflow syncs supplied values to the Cloudflare Worker. Anthropic can be configured with `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL`.
 - Add the same `AGENT_QUEUE_SECRET` value as a GitHub Actions repository secret so the scheduled queue workflow can call the protected dispatcher.
@@ -31,6 +32,7 @@ See [Cloudflare deployment and setup](docs/cloudflare-deploy.md). Without requir
 
 ## Not yet implemented or connected
 
+- Marketplace publishing, product file delivery, checkout, payment reconciliation, and customer fulfilment are not connected yet.
 - Multi-agent delegation, cancellation, and high-throughput queue processing. The scheduled dispatcher currently processes at most one job every five minutes.
 - Email and WhatsApp delivery.
 - Stripe, Paddle, marketplace, and other payment integrations.
