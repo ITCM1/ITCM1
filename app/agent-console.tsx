@@ -38,15 +38,36 @@ export default function AgentConsole() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [latestOutput, setLatestOutput] = useState("");
+  const [dispatchDiagnostic, setDispatchDiagnostic] = useState("");
 
   const loadRuns = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch("/api/agent-runs", { cache: "no-store" });
       if (!response.ok) throw new Error(await responseError(response));
-      const body = await response.json() as { runs: AgentRun[]; providerConfigured?: boolean };
+      const body = await response.json() as {
+        runs: AgentRun[];
+        providerConfigured?: boolean;
+        dispatch?: { triggered?: boolean; status?: number; result?: { error?: string; processed?: boolean; status?: string; reason?: string; errorCode?: string }; error?: string };
+      };
       setRuns(body.runs ?? []);
       setProviderConfigured(body.providerConfigured === true);
+      const d = body.dispatch;
+      setDispatchDiagnostic(!d
+        ? ""
+        : d.error
+          ? `Dispatcher call failed: ${d.error}`
+          : d.result?.error
+            ? `Dispatcher HTTP ${d.status ?? "?"}: ${d.result.error}`
+            : d.result?.errorCode
+              ? `Agent execution error: ${d.result.errorCode}`
+              : d.result?.reason
+                ? `Dispatcher: ${d.result.reason}`
+                : d.result?.processed
+                  ? `Dispatcher processed run: ${d.result.status ?? "unknown"}`
+                  : d.triggered
+                    ? `Dispatcher HTTP ${d.status ?? "200"}; no run processed.`
+                    : `Dispatcher not triggered (HTTP ${d.status ?? "no response"}).`);
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load agent history.");
@@ -123,6 +144,7 @@ export default function AgentConsole() {
         <button className="primary-button" type="submit" disabled={busy || !objective.trim()}>{busy ? "Agent working…" : "Run AI agent"}</button>
       </form>
       {error && <div className="error-banner" role="alert">{error}</div>}
+      {dispatchDiagnostic && <div className="agent-diagnostic" role="status"><strong>Queue diagnostic:</strong> {dispatchDiagnostic}</div>}
       {latestOutput && <article className="agent-output"><strong>Latest agent response</strong><pre>{latestOutput}</pre></article>}
       <div className="agent-history">
         <div className="agent-history-heading"><strong>Execution history</strong><span className="muted">{runs.length} recent runs</span></div>
