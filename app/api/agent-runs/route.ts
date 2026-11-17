@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       details: { agentKey: input.agentKey, queueId, projectId: input.projectId ?? null, taskId: input.taskId ?? null }
     });
 
-    const dispatch = await triggerQueueDispatch(request);
+    const dispatch = await triggerQueueDispatch();
     const actualRun = await db.prepare(
       "SELECT id, task_id AS taskId, project_id AS projectId, agent_key AS agentKey, objective, status, provider, model, output_summary AS outputSummary, error_code AS errorCode, created_at AS createdAt, finished_at AS finishedAt FROM agent_runs WHERE id = ?"
     ).bind(id).first<Record<string, unknown>>();
