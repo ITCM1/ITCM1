@@ -1,33 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { z } from "zod";
 import { getDatabase } from "@/lib/cloudflare";
 import { writeAuditEvent } from "@/lib/audit";
 import { isAgentProviderConfigured } from "@/lib/agent-executor";
 import { isOwnerAuthenticated } from "@/lib/owner-session";
-import { POST as dispatchQueue } from "@/app/api/agent-queue/dispatch/route";
-
-async function triggerQueueDispatch(): Promise<{ triggered: boolean; status?: number; result?: unknown; error?: string }> {
-  try {
-    const context = await getCloudflareContext({ async: true });
-    const env = context.env as unknown as { AGENT_QUEUE_SECRET?: string };
-    const secret = env.AGENT_QUEUE_SECRET;
-    if (!secret) return { triggered: false, error: "AGENT_QUEUE_SECRET_NOT_CONFIGURED" };
-
-    // Invoke the route handler directly inside this Worker. A self-fetch to the
-    // public Worker URL can return 404 because it is not a reliable internal
-    // route dispatch mechanism in the Cloudflare Workers runtime.
-    const dispatchRequest = new NextRequest("https://internal.local/api/agent-queue/dispatch", {
-      method: "POST",
-      headers: { authorization: `Bearer ${secret}` }
-    });
-    const response = await dispatchQueue(dispatchRequest);
-    const result = await response.json().catch(() => null);
-    return { triggered: response.ok, status: response.status, result };
-  } catch (error) {
-    return { triggered: false, error: error instanceof Error ? error.message : "QUEUE_DISPATCH_REQUEST_FAILED" };
-  }
-}
 
 const supportedAgentKeys = [
   "master-orchestrator",
@@ -45,11 +21,10 @@ const runInput = z.object({
   projectId: z.string().uuid().optional().nullable()
 });
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   if (!(await isOwnerAuthenticated())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const db = await getDatabase();
   if (!db) return NextResponse.json({ error: "D1 database is not configured." }, { status: 503 });
-  const dispatch = await triggerQueueDispatch();
   try {
     const result = await db.prepare(
       "SELECT id, task_id AS taskId, project_id AS projectId, agent_key AS agentKey, objective, status, provider, model, input_summary AS inputSummary, output_summary AS outputSummary, error_code AS errorCode, created_at AS createdAt, started_at AS startedAt, finished_at AS finishedAt FROM agent_runs ORDER BY created_at DESC LIMIT 100"
@@ -60,8 +35,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       runs: result.results ?? [],
       queue: queue.results ?? [],
-      providerConfigured: await isAgentProviderConfigured(),
-      dispatch
+      providerConfigured: await isAgentProviderConfigured()
     });
   } catch {
     return NextResponse.json({ error: "Agent queue is not installed. Apply migrations/0003_agent_queue.sql." }, { status: 503 });
@@ -101,13 +75,11 @@ export async function POST(request: NextRequest) {
       details: { agentKey: input.agentKey, queueId, projectId: input.projectId ?? null, taskId: input.taskId ?? null }
     });
 
-    const dispatch = await triggerQueueDispatch();
     const actualRun = await db.prepare(
       "SELECT id, task_id AS taskId, project_id AS projectId, agent_key AS agentKey, objective, status, provider, model, output_summary AS outputSummary, error_code AS errorCode, created_at AS createdAt, finished_at AS finishedAt FROM agent_runs WHERE id = ?"
     ).bind(id).first<Record<string, unknown>>();
     return NextResponse.json({
       run: actualRun ?? { id, ...input, status: "queued", createdAt },
-      dispatch,
       message: "Agent run accepted into the durable queue."
     }, { status: 202 });
   } catch (error) {
