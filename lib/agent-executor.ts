@@ -45,7 +45,12 @@ function resolveProvider(env: AgentEnvironment): "cloudflare" | "openai" | "anth
 }
 
 function resolveModel(env: AgentEnvironment, provider: "cloudflare" | "openai" | "anthropic"): string {
-  if (provider === "cloudflare") return env.AI_MODEL?.trim() || "@cf/google/gemma-4-26b-a4b-it";
+  if (provider === "cloudflare") {
+    const configured = env.AI_MODEL?.trim();
+    // AI_MODEL may still contain an OpenAI model name such as gpt-4.1-mini.
+    // Workers AI requires a Cloudflare model ID, so ignore non-@cf values.
+    return configured?.startsWith("@cf/") ? configured : "@cf/google/gemma-4-26b-a4b-it";
+  }
   if (provider === "anthropic") return env.ANTHROPIC_MODEL?.trim() || env.AI_MODEL?.trim() || "";
   return env.OPENAI_MODEL?.trim() || env.AI_MODEL?.trim() || "";
 }
