@@ -33,7 +33,7 @@ jobs:
           for migration in sorted(pathlib.Path("migrations").glob("*.sql")):
               database.executescript(migration.read_text(encoding="utf-8"))
 
-          expected = {"tasks", "projects", "agent_runs", "approvals", "audit_events", "agent_queue"}
+          expected = {"tasks", "projects", "digital_products", "agent_runs", "approvals", "audit_events", "agent_queue"}
           actual = {
               row[0]
               for row in database.execute(
@@ -43,7 +43,7 @@ jobs:
           missing = expected - actual
           if missing:
               raise SystemExit(f"Missing D1 tables after migrations: {sorted(missing)}")
-          print(f"Validated {len(expected)} required tables across all migrations.")
+          print(f"Validated {len(expected)} required tables across all migrations, including digital products.")
           PY
       - name: Lint
         run: npm run lint
