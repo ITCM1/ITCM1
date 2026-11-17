@@ -75,13 +75,11 @@ export async function POST(request: NextRequest) {
       details: { agentKey: input.agentKey, queueId, projectId: input.projectId ?? null, taskId: input.taskId ?? null }
     });
 
-    const dispatch = { triggered: false, reason: "scheduled_dispatch_only" };
     const actualRun = await db.prepare(
       "SELECT id, task_id AS taskId, project_id AS projectId, agent_key AS agentKey, objective, status, provider, model, output_summary AS outputSummary, error_code AS errorCode, created_at AS createdAt, finished_at AS finishedAt FROM agent_runs WHERE id = ?"
     ).bind(id).first<Record<string, unknown>>();
     return NextResponse.json({
       run: actualRun ?? { id, ...input, status: "queued", createdAt },
-      dispatch,
       message: "Agent run accepted into the durable queue."
     }, { status: 202 });
   } catch (error) {
