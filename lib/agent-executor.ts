@@ -88,7 +88,16 @@ export async function executeAgentObjective(input: {
   const model = resolveModel(env, provider);
   if (!model) throw new Error("AI_PROVIDER_NOT_CONFIGURED");
 
-  const userPrompt = `Agent role: ${input.agentKey}\nOwner objective: ${input.objective}`;
+  const diagnosticSnapshot = input.agentKey === "master-orchestrator"
+    ? await loadAgentDiagnosticSnapshot()
+    : null;
+  const userPrompt = [
+    `Agent role: ${input.agentKey}`,
+    `Owner objective: ${input.objective}`,
+    diagnosticSnapshot
+      ? `LIVE READ-ONLY SYSTEM DIAGNOSTIC SNAPSHOT (JSON):\n${JSON.stringify(diagnosticSnapshot)}`
+      : ""
+  ].filter(Boolean).join("\n\n");
   let response: Response | null = null;
 
   if (provider === "cloudflare") {
