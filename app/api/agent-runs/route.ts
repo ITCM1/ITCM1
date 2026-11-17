@@ -5,18 +5,23 @@ import { getDatabase } from "@/lib/cloudflare";
 import { writeAuditEvent } from "@/lib/audit";
 import { isAgentProviderConfigured } from "@/lib/agent-executor";
 import { isOwnerAuthenticated } from "@/lib/owner-session";
+import { POST as dispatchQueue } from "@/app/api/agent-queue/dispatch/route";
 
-async function triggerQueueDispatch(request: NextRequest): Promise<{ triggered: boolean; status?: number; result?: unknown; error?: string }> {
+async function triggerQueueDispatch(): Promise<{ triggered: boolean; status?: number; result?: unknown; error?: string }> {
   try {
     const context = await getCloudflareContext({ async: true });
     const env = context.env as unknown as { AGENT_QUEUE_SECRET?: string };
     const secret = env.AGENT_QUEUE_SECRET;
     if (!secret) return { triggered: false, error: "AGENT_QUEUE_SECRET_NOT_CONFIGURED" };
-    const dispatchUrl = new URL("/api/agent-queue/dispatch", request.url);
-    const response = await fetch(dispatchUrl, {
+
+    // Invoke the route handler directly inside this Worker. A self-fetch to the
+    // public Worker URL can return 404 because it is not a reliable internal
+    // route dispatch mechanism in the Cloudflare Workers runtime.
+    const dispatchRequest = new NextRequest("https://internal.local/api/agent-queue/dispatch", {
       method: "POST",
       headers: { authorization: `Bearer ${secret}` }
     });
+    const response = await dispatchQueue(dispatchRequest);
     const result = await response.json().catch(() => null);
     return { triggered: response.ok, status: response.status, result };
   } catch (error) {
@@ -44,7 +49,7 @@ export async function GET(request: NextRequest) {
   if (!(await isOwnerAuthenticated())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const db = await getDatabase();
   if (!db) return NextResponse.json({ error: "D1 database is not configured." }, { status: 503 });
-  const dispatch = await triggerQueueDispatch(request);
+  const dispatch = await triggerQueueDispatch();
   try {
     const result = await db.prepare(
       "SELECT id, task_id AS taskId, project_id AS projectId, agent_key AS agentKey, objective, status, provider, model, input_summary AS inputSummary, output_summary AS outputSummary, error_code AS errorCode, created_at AS createdAt, started_at AS startedAt, finished_at AS finishedAt FROM agent_runs ORDER BY created_at DESC LIMIT 100"
