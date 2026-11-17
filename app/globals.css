@@ -118,3 +118,12 @@ footer{margin-top:35px;color:#68717d;font-size:10px;letter-spacing:1px}footer sp
 .status-failed{border-color:#75413b;color:#ffc1b8}
 .status-running,.status-queued,.status-planning{border-color:#756342;color:var(--gold)}
 @media(max-width:600px){.agent-console{padding:14px}.agent-run-row{flex-direction:column}.agent-console .section-heading{align-items:flex-start}}
+
+/* Digital product catalogue */
+.product-manager{margin-top:42px;padding:20px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.product-form{display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr 1fr;gap:13px;padding:16px;background:#101720;border:1px solid var(--line);border-radius:9px}
+.product-list{margin-top:20px}
+.product-row{display:flex;gap:16px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:15px 17px;margin-top:9px}
+.agent-diagnostic{margin-top:13px;padding:12px 14px;border:1px solid #315c43;background:#112019;color:#a9d9b8;border-radius:8px;font-size:11px;line-height:1.6}
+@media(max-width:900px){.product-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.product-manager{padding:14px}.product-form{grid-template-columns:1fr}.product-row{align-items:flex-start}}
