@@ -21,7 +21,7 @@ const runInput = z.object({
   projectId: z.string().uuid().optional().nullable()
 });
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   if (!(await isOwnerAuthenticated())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const db = await getDatabase();
   if (!db) return NextResponse.json({ error: "D1 database is not configured." }, { status: 503 });
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       runs: result.results ?? [],
       queue: queue.results ?? [],
-      providerConfigured: await isAgentProviderConfigured(),
+      providerConfigured: await isAgentProviderConfigured()
     });
   } catch {
     return NextResponse.json({ error: "Agent queue is not installed. Apply migrations/0003_agent_queue.sql." }, { status: 503 });
