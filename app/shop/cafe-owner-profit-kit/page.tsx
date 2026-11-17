@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 const checkoutUrl = process.env.NEXT_PUBLIC_GUMROAD_PRODUCT_URL ?? "";
 
@@ -17,7 +18,7 @@ export default function CafeOwnerProfitKitPage() {
     <main style={{ minHeight: "100vh", background: "#080b10", color: "#f4f1e9", fontFamily: "Arial, sans-serif" }}>
       <div style={{ maxWidth: 1120, margin: "0 auto", padding: "28px 22px 72px" }}>
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, borderBottom: "1px solid #292b2e", paddingBottom: 22 }}>
-          <a href="/" style={{ color: "#d7b879", letterSpacing: 3, fontWeight: 800, textDecoration: "none" }}>ITCM <span style={{ color: "#f4f1e9", fontWeight: 400 }}>GLOBAL</span></a>
+          <Link href="/" style={{ color: "#d7b879", letterSpacing: 3, fontWeight: 800, textDecoration: "none" }}>ITCM <span style={{ color: "#f4f1e9", fontWeight: 400 }}>GLOBAL</span></Link>
           <span style={{ color: "#a9a18f", fontSize: 12, letterSpacing: 2 }}>DIGITAL TOOLKIT</span>
         </header>
 
