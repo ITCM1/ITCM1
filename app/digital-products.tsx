@@ -86,6 +86,7 @@ export default function DigitalProducts() {
         <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? "Refreshing…" : "Refresh catalogue"}</button>
       </div>
       <p className="agent-description">Create and track real product records in D1. Marketplace publishing and checkout remain disabled until a seller account and provider integration are connected.</p>
+      <p><a className="secondary-button" href="/shop/cafe-owner-profit-kit" target="_blank" rel="noreferrer">Preview public sales page ↗</a></p>
       <form className="product-form" onSubmit={createProduct}>
         <label className="field-label">Product title
           <input value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={180} />
