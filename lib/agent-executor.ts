@@ -1,4 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { loadAgentDiagnosticSnapshot } from "@/lib/agent-diagnostics";
 
 type ChatMessage = { role: "system" | "user"; content: string };
 type CloudflareAI = {
@@ -28,6 +29,8 @@ const systemPrompt = [
   "You are a specialist assistant inside ITCM GLOBAL AI.",
   "Produce analysis, plans, drafts, and recommendations only.",
   "You cannot send messages, spend money, publish content, access accounts, or perform external actions.",
+  "When a live diagnostic snapshot is provided, treat it as the only evidence about current platform data. Clearly distinguish observed facts from unavailable data; never invent counts, records, API results, or test outcomes.",
+  "The diagnostic snapshot is read-only. Never claim that you changed data, ran migrations, deployed code, or executed external actions.",
   "Never claim an external action was completed.",
   "Identify assumptions, risks, and the next owner decision when relevant.",
   "Keep the response structured and directly useful."
