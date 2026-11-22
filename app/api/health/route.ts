@@ -9,13 +9,14 @@ export async function GET() {
   const [
     database, telegramToken, telegramSecret, legacyAiKey, legacyAiModel,
     openAiKey, openAiModel, anthropicKey, anthropicModel, aiProvider,
-    ownerPassword, sessionSecret, queueSecret
+    ownerPassword, sessionSecret, queueSecret, gumroadToken
   ] = await Promise.all([
     getDatabase(), getRuntimeEnv("TELEGRAM_BOT_TOKEN"), getRuntimeEnv("TELEGRAM_WEBHOOK_SECRET"),
     getRuntimeEnv("AI_API_KEY"), getRuntimeEnv("AI_MODEL"),
     getRuntimeEnv("OPENAI_API_KEY"), getRuntimeEnv("OPENAI_MODEL"),
     getRuntimeEnv("ANTHROPIC_API_KEY"), getRuntimeEnv("ANTHROPIC_MODEL"), getRuntimeEnv("AI_PROVIDER"),
-    getRuntimeEnv("OWNER_LOGIN_PASSWORD"), getRuntimeEnv("SESSION_SECRET"), getRuntimeEnv("AGENT_QUEUE_SECRET")
+    getRuntimeEnv("OWNER_LOGIN_PASSWORD"), getRuntimeEnv("SESSION_SECRET"), getRuntimeEnv("AGENT_QUEUE_SECRET"),
+    getRuntimeEnv("GUMROAD_ACCESS_TOKEN")
   ]);
 
   let runtimeBindingNames: string[] = [];
@@ -68,7 +69,8 @@ export async function GET() {
         owner_login_password: Boolean(ownerPassword),
         session_secret: Boolean(sessionSecret)
       },
-      agent_queue_dispatch: queueSecret ? "configured" : "not_configured"
+      agent_queue_dispatch: queueSecret ? "configured" : "not_configured",
+      gumroad: gumroadToken ? "token_configured_connection_not_tested" : "not_configured"
     },
     runtime_binding_names: runtimeBindingNames,
     database_schema: schema,

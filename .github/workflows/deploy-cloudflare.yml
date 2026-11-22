@@ -48,6 +48,7 @@ jobs:
           ANTHROPIC_MODEL: ${{ secrets.ANTHROPIC_MODEL }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
+          GUMROAD_ACCESS_TOKEN: ${{ secrets.GUMROAD_ACCESS_TOKEN }}
         run: |
           set -euo pipefail
           put_secret() {
@@ -69,6 +70,7 @@ jobs:
           put_secret ANTHROPIC_MODEL "$ANTHROPIC_MODEL"
           put_secret TELEGRAM_BOT_TOKEN "$TELEGRAM_BOT_TOKEN"
           put_secret TELEGRAM_WEBHOOK_SECRET "$TELEGRAM_WEBHOOK_SECRET"
+          put_secret GUMROAD_ACCESS_TOKEN "$GUMROAD_ACCESS_TOKEN"
 
       - name: Deploy Worker
         run: npx wrangler deploy

@@ -13,6 +13,7 @@ ITCM GLOBAL AI is a secure business operations platform in active development. T
 - Owner-authenticated task API: create, list, update, and delete.
 - Cloudflare D1 schema for tasks, projects, digital products, agent runs, approvals, audit events, and a durable agent queue.
 - Owner-authenticated digital product catalogue with persistent product records, target markets, suggested price/currency, and draft/ready-for-review status.
+- Owner-only Gumroad API connection endpoint for authenticated account, product catalogue, and recent sales reads; token is read from encrypted Worker secrets and never returned.
 - Owner-authenticated agent-run API that enqueues work in D1; an authenticated dispatcher claims jobs, executes the configured AI chat-completions request, and records outcomes.
 - Agent execution records success/failure, provider/model, output, and audit events in D1.
 - Agent runs are limited to analysis, plans, drafts, and recommendations; they cannot perform external actions or move money.
@@ -32,7 +33,7 @@ See [Cloudflare deployment and setup](docs/cloudflare-deploy.md). Without requir
 
 ## Not yet implemented or connected
 
-- Marketplace publishing, product file delivery, checkout, payment reconciliation, and customer fulfilment are not connected yet.
+- Gumroad read-only account/product/sales sync is implemented but requires `GUMROAD_ACCESS_TOKEN`; automated product creation, file upload/delivery, publishing, checkout, payment reconciliation, and customer fulfilment are not yet connected.
 - Multi-agent delegation, cancellation, and high-throughput queue processing. The scheduled dispatcher currently processes at most one job every five minutes.
 - Email and WhatsApp delivery.
 - Stripe, Paddle, marketplace, and other payment integrations.
