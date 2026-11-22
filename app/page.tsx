@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import AgentConsole from "@/app/agent-console";
 import DigitalProducts from "@/app/digital-products";
+import FactoryOverview from "@/app/factory-overview";
 
 type TaskStatus = "pending" | "in_progress" | "done";
 type TaskPriority = "high" | "normal" | "low";
@@ -206,6 +207,7 @@ export default function HomePage() {
         <a className="nav-item active" href="#overview">Overview</a>
         <a className="nav-item" href="#tasks">Task center</a>
         <a className="nav-item" href="#create-task">Create task</a>
+        <a className="nav-item" href="#factory">Product Factory</a>
         <a className="nav-item" href="#digital-products">Digital Products</a>
         <a className="nav-item" href="#agents">AI Agents</a>
         <a className="nav-item" href="#integrations">Integrations</a>
@@ -280,6 +282,8 @@ export default function HomePage() {
             </article>
           ))}
         </div>
+
+        <FactoryOverview />
 
         <DigitalProducts />
 
